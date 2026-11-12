@@ -1,0 +1,21 @@
+asyncapi: 3.0.0
+info:
+  title: __REPO_NAME__ events
+  version: 0.0.0
+  description: Event and message API for __REPO_NAME__. The reference docs are generated from this file.
+channels:
+  heartbeat:
+    address: heartbeat
+    messages:
+      beat:
+        payload:
+          type: object
+          properties:
+            sentAt:
+              type: string
+              format: date-time
+operations:
+  sendHeartbeat:
+    action: send
+    channel:
+      $ref: "#/channels/heartbeat"

@@ -1,0 +1,7 @@
+  - repo: local
+    hooks:
+      - id: swift-format
+        name: swift-format
+        language: system
+        entry: swift format --in-place
+        types: [swift]

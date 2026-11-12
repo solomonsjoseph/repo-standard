@@ -1,0 +1,11 @@
+dist/
+coverage/
+pnpm-lock.yaml
+*.md
+.github/
+.pre-commit-config.yaml
+release-please-config.json
+.release-please-manifest.json
+.vale/
+api/
+.lychee.toml

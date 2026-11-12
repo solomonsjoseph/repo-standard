@@ -1,0 +1,8 @@
+  - repo: local
+    hooks:
+      - id: asyncapi-validate
+        name: AsyncAPI spec is valid
+        language: node
+        additional_dependencies: ["@asyncapi/cli@6.3.0"]
+        entry: asyncapi validate
+        files: ^api/asyncapi\.ya?ml$

@@ -1,0 +1,14 @@
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 5
+    # gomod has no development dependency type, so every bump is fix(deps).
+    commit-message:
+      prefix: fix
+      include: scope
+    labels: [dependencies]
+    groups:
+      dependencies:
+        update-types: [minor, patch]

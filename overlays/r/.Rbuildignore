@@ -1,0 +1,6 @@
+^\.github$
+^\.pre-commit-config\.yaml$
+^docs$
+^scripts$
+^AGENTS\.md$
+^CLAUDE\.md$

@@ -1,0 +1,8 @@
+  - repo: local
+    hooks:
+      - id: openapi-lint
+        name: OpenAPI spec passes Redocly lint
+        language: node
+        additional_dependencies: ["@redocly/cli@2.78.0"]
+        entry: redocly lint
+        files: ^api/openapi\.ya?ml$

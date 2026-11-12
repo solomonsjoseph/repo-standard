@@ -1,0 +1,31 @@
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build and logs
+dist/
+build/
+coverage/
+*.log
+
+# Temporary planning and build artifacts (never committed; see STANDARD.md)
+.scratch/
+.remember/
+.claude/settings.local.json
+
+# Docs builds and generated reference
+docs/reference/api/
+site/
+docs/_build/
+.astro/

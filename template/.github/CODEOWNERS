@@ -1,0 +1,3 @@
+# Routing only: owners are requested for review, never required.
+* @__OWNER__
+/.github/ @__OWNER__

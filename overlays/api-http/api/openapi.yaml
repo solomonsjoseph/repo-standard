@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: __REPO_NAME__ API
+  version: 0.0.0
+  description: HTTP API for __REPO_NAME__. The reference docs are generated from this file.
+  license:
+    name: See LICENSE
+    url: https://github.com/__OWNER__/__REPO_NAME__/blob/main/LICENSE
+servers:
+  - url: /
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Report service health
+      # Public endpoint: no authentication.
+      security: []
+      responses:
+        "200":
+          description: The service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        "429":
+          description: Too many requests.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+components:
+  schemas:
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string

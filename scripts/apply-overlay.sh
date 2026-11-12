@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# Usage: apply-overlay.sh TARGET_DIR OVERLAY --owner O [--name N] [--desc D] [--public] [--retrofit]
+#
+# Applies a language overlay (python, ts, go, r, swift, docs) or an add-on
+# overlay (api-http, api-events) to a repo, plus the public overlay when
+# --public is set. Placeholders (__OWNER__, __REPO_NAME__, ...) are filled in.
+#
+# Default mode (new repos): TARGET_DIR already holds template/; overlay files
+# are copied over it and the fragments below are merged in.
+#
+# --retrofit (existing repos): nothing that exists is overwritten. Missing
+# base-template and overlay files are copied in, sample source code is
+# skipped, and any fragment that cannot be merged automatically is written to
+# .scratch/repo-standard-merge/ for a hand merge.
+#
+# Overlay files starting with "_" are merge fragments:
+#   _ci.yml         replaces .github/workflows/ci.yml
+#   _precommit.yaml appended to .pre-commit-config.yaml
+#   _dependabot.yml appended to .github/dependabot.yml
+#   _gitignore      lines added to .gitignore
+#   _release-type   sets release-type in release-please-config.json
+#   _codeql-langs   CodeQL languages for the public overlay
+# shellcheck source=lib.sh
+source "$(dirname "$0")/lib.sh"
+
+target="${1:?target dir}"; overlay="${2:?overlay}"; shift 2
+public=0; retrofit=0; owner=""; name=""; desc=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --public) public=1 ;;
+    --retrofit) retrofit=1 ;;
+    --owner) owner="$2"; shift ;;
+    --name) name="$2"; shift ;;
+    --desc) desc="$2"; shift ;;
+    *) die "unknown option $1" ;;
+  esac
+  shift
+done
+[ -n "$owner" ] || die "--owner is required (placeholders would stay unfilled)"
+src="$STANDARD_ROOT/overlays/$overlay"
+[ -d "$src" ] || die "no overlay '$overlay' (see $STANDARD_ROOT/overlays)"
+[ -d "$target" ] || die "$target does not exist"
+[ "$retrofit" = 1 ] || [ -f "$target/.pre-commit-config.yaml" ] || die "$target has no base template"
+name="${name:-$(basename "$target")}"
+desc="${desc:-$name}"
+pkg="$(echo "$name" | tr '[:upper:]-' '[:lower:]_')"
+case "$overlay" in swift|r) pkg="$(echo "$name" | perl -pe 's/(^|[-_])(\w)/\U$2/g')" ;; esac
+
+fragments=(--exclude /_ci.yml --exclude /_precommit.yaml --exclude /_dependabot.yml
+  --exclude /_gitignore --exclude /_release-type --exclude /_codeql-langs)
+merge_dir="$target/.scratch/repo-standard-merge/$overlay"
+stage="$(mktemp -d)"; trap 'rm -rf "$stage"' EXIT
+
+# Stage everything this overlay would add, with placeholders filled in.
+[ "$retrofit" = 1 ] && rsync -a "$STANDARD_ROOT/template/" "$stage/"
+rsync -a "${fragments[@]}" "$src/" "$stage/"
+if [ "$public" = 1 ] && [ -f "$src/_codeql-langs" ]; then
+  rsync -a "$STANDARD_ROOT/overlays/public/" "$stage/"
+  langs="$(tr ' ' '\n' < "$src/_codeql-langs" | grep . | paste -sd, - | sed 's/,/, /g')"
+  LANGS="$langs" perl -pi -e 's/__CODEQL_LANGS__/$ENV{LANGS}/' "$stage/.github/workflows/codeql.yml"
+fi
+render_placeholders "$stage" "$owner" "$name" "$pkg" "$desc"
+
+# put_fragment FILE MARKER FRAGMENT MODE: merge a fragment into FILE when FILE
+# still carries the template MARKER (or in default mode), else park it for a
+# hand merge. MODE is "replace" or "append".
+put_fragment() {
+  local file="$1" marker="$2" frag="$3" mode="$4"
+  [ -f "$frag" ] && [ -s "$frag" ] || return 0
+  if [ "$retrofit" = 0 ] || { [ -f "$file" ] && grep -q "$marker" "$file"; }; then
+    if [ "$mode" = replace ]; then cp "$frag" "$file"; else cat "$frag" >> "$file"; fi
+  else
+    mkdir -p "$merge_dir"
+    cp "$frag" "$merge_dir/$(basename "$frag" | sed 's/^_//')"
+    echo "note: merge $merge_dir/$(basename "$frag" | sed 's/^_//') into ${file#"$target"/} by hand"
+  fi
+}
+
+if [ "$retrofit" = 1 ]; then
+  info "retrofit: copying missing files only (overlay $overlay)"
+  # Existing files are never overwritten. Where the standard's version
+  # differs, park it next to the overlay fragments for a hand merge, so no
+  # part of the standard is dropped silently. .gitignore lines merge safely.
+  (cd "$stage" && find . -type f ! -path './src/*' ! -path './tests/*' ! -path './Sources/*' \
+      ! -path './Tests/*' ! -path './cmd/*' ! -path './internal/*' ! -path './R/*' ! -path './api/*') |
+    while read -r rel; do
+      rel="${rel#./}"
+      [ -f "$target/$rel" ] || continue
+      cmp -s "$stage/$rel" "$target/$rel" && continue
+      if [ "$rel" = .gitignore ]; then
+        while IFS= read -r line; do
+          [ -z "$line" ] || grep -qxF -- "$line" "$target/.gitignore" || echo "$line" >> "$target/.gitignore"
+        done < "$stage/.gitignore"
+        continue
+      fi
+      mkdir -p "$target/.scratch/repo-standard-merge/standard/$(dirname "$rel")"
+      cp "$stage/$rel" "$target/.scratch/repo-standard-merge/standard/$rel"
+      echo "note: $rel exists; the standard's version is in .scratch/repo-standard-merge/standard/$rel"
+    done
+  # Sample source and tests are for new repos; an existing repo has its own.
+  rsync -a --ignore-existing \
+    --exclude '/src/' --exclude '/tests/' --exclude '/Sources/' --exclude '/Tests/' \
+    --exclude '/cmd/' --exclude '/internal/' --exclude '/R/' --exclude '/api/' \
+    "$stage/" "$target/"
+else
+  info "copying overlay $overlay"
+  rsync -a "$stage/" "$target/"
+fi
+
+put_fragment "$target/.github/workflows/ci.yml" "Language overlays replace this file" "$src/_ci.yml" replace
+put_fragment "$target/.pre-commit-config.yaml" "# LANGUAGE HOOKS (added by overlay)" "$src/_precommit.yaml" append
+put_fragment "$target/.github/dependabot.yml" "# LANGUAGE ECOSYSTEMS (added by overlay)" "$src/_dependabot.yml" append
+if [ -s "$src/_gitignore" ]; then
+  touch "$target/.gitignore"
+  while IFS= read -r line; do
+    grep -qxF -- "$line" "$target/.gitignore" || echo "$line" >> "$target/.gitignore"
+  done < "$src/_gitignore"
+fi
+
+if [ -f "$src/_release-type" ]; then
+  cfg="$target/release-please-config.json"
+  if grep -q '"\.": {}' "$cfg" 2>/dev/null; then
+    rtype="$(cat "$src/_release-type")"
+    RT="$rtype" PN="$name" perl -0pi -e 's/"release-type": "[^"]*"/"release-type": "$ENV{RT}"/; s/"\.": \{\}/"." : { "package-name": "$ENV{PN}" }/' "$cfg"
+    if [ "$overlay" = python ]; then
+      # release-please bumps pyproject.toml but not uv.lock; without this every
+      # release PR fails `uv sync --locked`. uv normalizes the name.
+      uvname="$(echo "$name" | tr '[:upper:]_.' '[:lower:]--')"
+      UV="$uvname" perl -0pi -e 's/"\." : \{ "package-name": "([^"]*)" \}/"." : {\n      "package-name": "$1",\n      "extra-files": [\n        { "type": "toml", "path": "uv.lock", "jsonpath": "\$.package[?(\@.name.value==\x27$ENV{UV}\x27)].version" }\n      ]\n    }/' "$cfg"
+    fi
+  else
+    echo "note: $cfg already configured; set release-type $(cat "$src/_release-type") by hand if needed"
+  fi
+fi
+
+# Default mode: the base template files in TARGET_DIR still hold placeholders.
+[ "$retrofit" = 0 ] && render_placeholders "$target" "$owner" "$name" "$pkg" "$desc"
+# Accounts other than the source owner keep their standard private: no links.
+is_source_owner "$owner" || delink_standard "$target"
+info "overlay $overlay applied to $target"
