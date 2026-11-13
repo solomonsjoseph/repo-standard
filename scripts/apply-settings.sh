@@ -27,10 +27,26 @@ gh_ api -X PATCH "repos/$full" --silent \
   -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY \
   -F delete_branch_on_merge=true -F allow_update_branch=true -F allow_auto_merge=false
 
-info "Actions: allowed, actions must be pinned to full SHAs"
-gh_ api -X PUT "repos/$full/actions/permissions" --silent \
-  -F enabled=true -f allowed_actions=all -F sha_pinning_required=true ||
-  warn "could not require SHA-pinned actions"
+# Required SHA pinning makes every workflow with a tag-pinned action fail, so
+# turn it on only once the default branch has none (retrofits pin them first).
+unpinned=""
+for wf in $(gh_ api "repos/$full/contents/.github/workflows" --jq '.[] | select(.type=="file") | .path' 2>/dev/null); do
+  if gh_ api -H "Accept: application/vnd.github.raw" "repos/$full/contents/$wf" 2>/dev/null |
+      grep -E '^[[:space:]-]*uses:[[:space:]]*[^.[:space:]][^@[:space:]]*@' |
+      grep -vqE '@[0-9a-f]{40}([[:space:]]|$)' ; then
+    unpinned="$unpinned $wf"
+  fi
+done
+if [ -n "$unpinned" ]; then
+  info "Actions: allowed (SHA pinning NOT required yet)"
+  gh_ api -X PUT "repos/$full/actions/permissions" --silent -F enabled=true -f allowed_actions=all
+  warn "unpinned actions in:$unpinned; pin them to full SHAs, then re-run apply-settings"
+else
+  info "Actions: allowed, actions must be pinned to full SHAs"
+  gh_ api -X PUT "repos/$full/actions/permissions" --silent \
+    -F enabled=true -f allowed_actions=all -F sha_pinning_required=true ||
+    warn "could not require SHA-pinned actions"
+fi
 
 info "Actions token permissions"
 gh_ api -X PUT "repos/$full/actions/permissions/workflow" --silent \

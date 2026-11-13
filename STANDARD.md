@@ -350,7 +350,12 @@ project's decisions file:
 4. Never rewrite history. Set `bootstrap-sha` for release-please and the
    manifest version to the latest existing tag.
 5. Existing coverage becomes the floor; it must not drop. Set
-   `VALE_SCOPE: changed` so Vale checks only the files a PR touches.
+   `HOOKS_SCOPE: changed` in `ci.yml` so every hook (Vale, markdownlint,
+   whitespace, ASCII and the rest) checks only the files a PR touches;
+   older files are fixed as they are edited.
+   Pin every existing workflow action to a full SHA in the same PR, because
+   `apply-settings.sh` turns on required SHA pinning and skips it while any
+   workflow on `main` is unpinned.
 6. If the default branch is not `main`, rename it (asked per repo).
 7. List any committed plan or notes files for the owner; never delete them
    automatically.
@@ -427,7 +432,7 @@ The `hooks` job, which the `ci` aggregate requires, runs:
   `Google.FirstPerson`, `Google.We`, `Google.Will`. `Google.Passive` stays a
   suggestion because it misfires on technical prose. Project terms go in
   `.vale/styles/config/vocabularies/Project/accept.txt`. Retrofitted repos
-  set `VALE_SCOPE: changed` in `ci.yml` so only files a PR touches are
+  set `HOOKS_SCOPE: changed` in `ci.yml` so only files a PR touches are
   checked.
 - **markdownlint** on `.md` files.
 - **lychee** in offline mode: internal links and anchors. External links run
