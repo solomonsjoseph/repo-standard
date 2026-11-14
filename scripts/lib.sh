@@ -140,3 +140,22 @@ delink_standard() {
     perl -0pi -e 's/the\s*\n?\[repo standard\]\(https:\/\/github\.com\/[^)\s]+\/repo-standard\/blob\/main\/STANDARD\.md\)/its owner\x27s repository standard/g' "$f"
   done
 }
+
+# Per-repo exclude list: DIR/.github/repo-standard-exclude names standard
+# files, folders (ending in /), hooks (hook:<id>) and .gitignore patterns
+# (gitignore:<pattern>) the repo has chosen not to use. One entry per line;
+# text after # is a comment (the reason).
+EXCLUDE_FILE=.github/repo-standard-exclude
+# excluded DIR ENTRY: true when ENTRY (a path or hook:<id>) is on DIR's list.
+# A folder entry also covers every path inside it.
+excluded() {
+  local list="$1/$EXCLUDE_FILE" entry
+  [ -f "$list" ] || return 1
+  while IFS= read -r entry || [ -n "$entry" ]; do
+    entry="${entry%%#*}"; entry="$(echo "$entry" | tr -d '[:space:]')"
+    [ -n "$entry" ] || continue
+    [ "$2" = "$entry" ] && return 0
+    case "$entry" in */) case "$2" in "$entry"*|"${entry%/}") return 0 ;; esac ;; esac
+  done < "$list"
+  return 1
+}

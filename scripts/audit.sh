@@ -11,6 +11,9 @@ ok()  { printf 'PASS  %s\n' "$1"; pass=$((pass + 1)); }
 bad() { printf 'FAIL  %s\n' "$1"; fail=$((fail + 1)); }
 nap() { printf 'N/A   %s\n' "$1"; na=$((na + 1)); }
 chk() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# xchk ENTRY LABEL TEST: N/A when ENTRY (path or hook:<id>) is on the repo's
+# exclude list (.github/repo-standard-exclude), else a normal check.
+xchk() { if excluded "$dir" "$1"; then nap "$2 (excluded by the repo)"; else chk "$2" "$3"; fi; }
 
 repo_json="$(gh_as "$owner" api "repos/$full")"
 j() { echo "$repo_json" | jq -r "$1"; }
@@ -24,9 +27,9 @@ for f in README.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md AGENTS.md \
   .github/CODEOWNERS .github/ISSUE_TEMPLATE/config.yml \
   .github/workflows/ci.yml .github/workflows/pr-title.yml .github/workflows/release-please.yml \
   .github/workflows/links.yml .vale.ini .lychee.toml scripts/check_docs.py docs/index.md docs/dev/index.md; do
-  chk "$f" "[ -f '$dir/$f' ]"
+  xchk "$f" "$f" "[ -f '$dir/$f' ]"
 done
-if [ "$no_license" = 1 ]; then nap "LICENSE (repo chose no license)"; else chk "LICENSE" "[ -f '$dir/LICENSE' ]"; fi
+if [ "$no_license" = 1 ]; then nap "LICENSE (repo chose no license)"; else xchk LICENSE "LICENSE" "[ -f '$dir/LICENSE' ]"; fi
 chk "ci.yml has aggregate job 'ci' and a 'secrets' job" "grep -q '^  ci:' '$dir/.github/workflows/ci.yml' 2>/dev/null && grep -q '^  secrets:' '$dir/.github/workflows/ci.yml'"
 chk "dependabot covers github-actions and pre-commit" "grep -q 'package-ecosystem: github-actions' '$dir/.github/dependabot.yml' 2>/dev/null && grep -q 'package-ecosystem: pre-commit' '$dir/.github/dependabot.yml'"
 chk "release-please tags are plain vX.Y.Z" "grep -q '\"include-component-in-tag\": false' '$dir/release-please-config.json' 2>/dev/null"
@@ -36,9 +39,11 @@ unfrozen="$(grep -E '^\s+rev: ' "$dir/.pre-commit-config.yaml" 2>/dev/null | gre
 chk "pre-commit hook revs frozen to SHAs${unfrozen:+ (not frozen: $(echo "$unfrozen" | wc -l | tr -d ' ') revs)}" "[ -z \"\$unfrozen\" ]"
 chk "workflows set top-level permissions" "! grep -L '^permissions:' '$dir'/.github/workflows/*.yml 2>/dev/null | grep -q ."
 chk "no pull_request_target" "! grep -rq 'pull_request_target' '$dir/.github/workflows' 2>/dev/null"
-chk "Vale Google style vendored" "[ -f '$dir/.vale/styles/Google/Headings.yml' ]"
+xchk .vale/ "Vale Google style vendored" "[ -f '$dir/.vale/styles/Google/Headings.yml' ]"
 chk ".scratch/ is gitignored" "grep -qx '.scratch/' '$dir/.gitignore' 2>/dev/null"
-chk "docs hooks configured (vale, lychee, check-docs, no-scratch-files)" "grep -q 'id: vale' '$dir/.pre-commit-config.yaml' && grep -q 'id: lychee' '$dir/.pre-commit-config.yaml' && grep -q 'id: check-docs' '$dir/.pre-commit-config.yaml' && grep -q 'id: no-scratch-files' '$dir/.pre-commit-config.yaml'"
+for h in vale lychee check-docs no-scratch-files; do
+  xchk "hook:$h" "docs hook configured: $h" "grep -q 'id: $h' '$dir/.pre-commit-config.yaml' 2>/dev/null"
+done
 stray="$(cd "$dir" && git ls-files 2>/dev/null | RE="$SCRATCH_NAME_RE" EX="$SCRATCH_EXEMPT_RE" python3 -c '
 import os, re, sys
 name = re.compile(os.environ["RE"], re.I); exempt = re.compile(os.environ["EX"], re.I)
@@ -69,8 +74,8 @@ else
     bad "ruleset 'main' exists"
   fi
   chk "secret scanning push protection" "[ \"$(j '.security_and_analysis.secret_scanning_push_protection.status')\" = enabled ]"
-  chk "public overlay: codeql.yml" "[ -f '$dir/.github/workflows/codeql.yml' ]"
-  chk "public overlay: scorecard.yml" "[ -f '$dir/.github/workflows/scorecard.yml' ]"
+  xchk .github/workflows/codeql.yml "public overlay: codeql.yml" "[ -f '$dir/.github/workflows/codeql.yml' ]"
+  xchk .github/workflows/scorecard.yml "public overlay: scorecard.yml" "[ -f '$dir/.github/workflows/scorecard.yml' ]"
 fi
 chk "Dependabot alerts enabled" "gh_as '$owner' api 'repos/$full/vulnerability-alerts' --silent 2>/dev/null"
 chk "release App client id variable set" "gh_as '$owner' variable list --repo '$full' 2>/dev/null | grep -q RELEASE_APP_CLIENT_ID"
