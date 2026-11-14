@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Usage: apply-overlay.sh TARGET_DIR OVERLAY --owner O [--name N] [--desc D] [--public] [--retrofit]
+#          [--codeql-langs "L1 L2"]
 #
 # Applies a language overlay (python, ts, go, r, swift, docs) or an add-on
 # overlay (api-http, api-events) to a repo, plus the public overlay when
@@ -20,15 +21,23 @@
 #   _gitignore      lines added to .gitignore
 #   _release-type   sets release-type in release-please-config.json
 #   _codeql-langs   CodeQL languages for the public overlay
+#
+# --codeql-langs "L1 L2" sets the CodeQL languages explicitly (for example
+# "actions python javascript-typescript"). Without it, a retrofit adds every
+# language it finds in the repo's tracked files to the overlay's list.
+#
+# Retrofits also turn on Dependabot alerts (so dependency-review can run on the
+# adoption PR) and warn about tracked symlinks, which usually break in CI.
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 
 target="${1:?target dir}"; overlay="${2:?overlay}"; shift 2
-public=0; retrofit=0; owner=""; name=""; desc=""
+public=0; retrofit=0; owner=""; name=""; desc=""; codeql_langs=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --public) public=1 ;;
     --retrofit) retrofit=1 ;;
+    --codeql-langs) codeql_langs="$2"; shift ;;
     --owner) owner="$2"; shift ;;
     --name) name="$2"; shift ;;
     --desc) desc="$2"; shift ;;
@@ -54,12 +63,63 @@ stage="$(mktemp -d)"; trap 'rm -rf "$stage"' EXIT
 # Stage everything this overlay would add, with placeholders filled in.
 [ "$retrofit" = 1 ] && rsync -a "$STANDARD_ROOT/template/" "$stage/"
 rsync -a "${fragments[@]}" "$src/" "$stage/"
+# detect_codeql_langs DIR: CodeQL languages found in DIR's tracked files.
+detect_codeql_langs() {
+  git -C "$1" ls-files 2>/dev/null | awk -F. 'NF > 1 { print tolower($NF) }' | sort -u |
+    while read -r ext; do
+      case "$ext" in
+        py) echo python ;;
+        js|jsx|mjs|cjs|ts|tsx|mts|cts|vue) echo javascript-typescript ;;
+        go) echo go ;;
+        swift) echo swift ;;
+        java|kt|kts) echo java-kotlin ;;
+        cs) echo csharp ;;
+        c|cc|cpp|cxx|h|hpp) echo c-cpp ;;
+        rb) echo ruby ;;
+        rs) echo rust ;;
+      esac
+    done | sort -u
+}
+
 if [ "$public" = 1 ] && [ -f "$src/_codeql-langs" ]; then
   rsync -a "$STANDARD_ROOT/overlays/public/" "$stage/"
-  langs="$(tr ' ' '\n' < "$src/_codeql-langs" | grep . | paste -sd, - | sed 's/,/, /g')"
+  if [ -n "$codeql_langs" ]; then
+    lang_list="$codeql_langs"
+  else
+    lang_list="$(cat "$src/_codeql-langs")"
+    if [ "$retrofit" = 1 ]; then
+      for l in $(detect_codeql_langs "$target"); do
+        case " $lang_list " in *" $l "*) ;; *)
+          lang_list="$lang_list $l"
+          echo "note: CodeQL also scans $l (found in tracked files; override with --codeql-langs)" ;;
+        esac
+      done
+    fi
+  fi
+  langs="$(echo "$lang_list" | tr ' ' '\n' | grep . | paste -sd, - | sed 's/,/, /g')"
   LANGS="$langs" perl -pi -e 's/__CODEQL_LANGS__/$ENV{LANGS}/' "$stage/.github/workflows/codeql.yml"
 fi
 render_placeholders "$stage" "$owner" "$name" "$pkg" "$desc"
+
+# merge_gitignore FROM INTO: append FROM's ignore patterns that INTO lacks,
+# under one header. Comment and blank lines are not copied, so no empty
+# section headers pile up, and a missing final newline in INTO is fixed first
+# so the first new pattern does not join the last existing line.
+merge_gitignore() {
+  local from="$1" into="$2" line added=0
+  touch "$into"
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|'#'*) continue ;; esac
+    grep -qxF -- "$line" "$into" && continue
+    if [ "$added" = 0 ]; then
+      [ -s "$into" ] && [ -n "$(tail -c 1 "$into")" ] && echo >> "$into"
+      grep -qxF "# Added by the repo standard" "$into" ||
+        { [ -s "$into" ] && echo >> "$into"; echo "# Added by the repo standard" >> "$into"; }
+      added=1
+    fi
+    echo "$line" >> "$into"
+  done < "$from"
+}
 
 # put_fragment FILE MARKER FRAGMENT MODE: merge a fragment into FILE when FILE
 # still carries the template MARKER (or in default mode), else park it for a
@@ -88,9 +148,7 @@ if [ "$retrofit" = 1 ]; then
       [ -f "$target/$rel" ] || continue
       cmp -s "$stage/$rel" "$target/$rel" && continue
       if [ "$rel" = .gitignore ]; then
-        while IFS= read -r line; do
-          [ -z "$line" ] || grep -qxF -- "$line" "$target/.gitignore" || echo "$line" >> "$target/.gitignore"
-        done < "$stage/.gitignore"
+        merge_gitignore "$stage/.gitignore" "$target/.gitignore"
         continue
       fi
       mkdir -p "$target/.scratch/repo-standard-merge/standard/$(dirname "$rel")"
@@ -111,10 +169,14 @@ put_fragment "$target/.github/workflows/ci.yml" "Language overlays replace this 
 put_fragment "$target/.pre-commit-config.yaml" "# LANGUAGE HOOKS (added by overlay)" "$src/_precommit.yaml" append
 put_fragment "$target/.github/dependabot.yml" "# LANGUAGE ECOSYSTEMS (added by overlay)" "$src/_dependabot.yml" append
 if [ -s "$src/_gitignore" ]; then
-  touch "$target/.gitignore"
-  while IFS= read -r line; do
-    grep -qxF -- "$line" "$target/.gitignore" || echo "$line" >> "$target/.gitignore"
-  done < "$src/_gitignore"
+  if [ "$retrofit" = 1 ]; then
+    merge_gitignore "$src/_gitignore" "$target/.gitignore"
+  else
+    # New repos: keep the overlay's section comments for readability.
+    while IFS= read -r line || [ -n "$line" ]; do
+      grep -qxF -- "$line" "$target/.gitignore" || echo "$line" >> "$target/.gitignore"
+    done < "$src/_gitignore"
+  fi
 fi
 
 if [ -f "$src/_release-type" ]; then
@@ -137,4 +199,27 @@ fi
 [ "$retrofit" = 0 ] && render_placeholders "$target" "$owner" "$name" "$pkg" "$desc"
 # Accounts other than the source owner keep their standard private: no links.
 is_source_owner "$owner" || delink_standard "$target"
+
+if [ "$retrofit" = 1 ]; then
+  # Tracked symlinks usually point at a path on the author's machine and
+  # break in CI (a fixture symlink failed 30 tests in the pilot).
+  git -C "$target" ls-files -s 2>/dev/null | awk '$1 == "120000" { sub(/^[^\t]*\t/, ""); print }' |
+    while read -r link; do
+      echo "warning: $link is a tracked symlink to $(readlink "$target/$link"); CI cannot follow it. Commit the real file or remove it." >&2
+    done
+
+  # dependency-review fails on the adoption PR unless the dependency graph is
+  # on, so turn on Dependabot alerts now rather than after the merge.
+  remote="$(git -C "$target" remote get-url origin 2>/dev/null || true)"
+  slug="$(echo "$remote" | sed -nE 's#^(https://github\.com/|git@github\.com:)([^/]+/[^/]+)$#\2#p' | sed 's/\.git$//')"
+  if [ -n "$slug" ]; then
+    if gh_as "$owner" api -X PUT "repos/$slug/vulnerability-alerts" --silent 2>/dev/null; then
+      info "Dependabot alerts on for $slug (dependency-review needs them)"
+    else
+      echo "warning: could not turn on Dependabot alerts for $slug; dependency-review will fail until they are on" >&2
+    fi
+  else
+    echo "note: no GitHub origin remote; turn on Dependabot alerts before opening the PR" >&2
+  fi
+fi
 info "overlay $overlay applied to $target"

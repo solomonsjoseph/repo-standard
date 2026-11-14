@@ -346,7 +346,16 @@ project's decisions file:
    [--public]`. It copies only missing files, skips sample source code, and
    parks fragments it cannot merge (for example the overlay's CI jobs) in
    `.scratch/repo-standard-merge/` for a hand merge. Nothing that exists is
-   overwritten.
+   overwritten. It also:
+   - adds missing `.gitignore` patterns under one
+     `# Added by the repo standard` header;
+   - adds every language found in tracked files to the CodeQL matrix (set
+     the list yourself with `--codeql-langs "actions python ..."`);
+   - warns about tracked symlinks, which CI cannot follow; commit the real
+     file or remove the link before opening the PR;
+   - turns on Dependabot alerts for the `origin` repo, because
+     `dependency-review` fails on the adoption PR without the dependency
+     graph (needs admin rights; otherwise turn them on by hand).
 4. Never rewrite history. Set `bootstrap-sha` for release-please and the
    manifest version to the latest existing tag.
 5. Existing coverage becomes the floor; it must not drop. Set
