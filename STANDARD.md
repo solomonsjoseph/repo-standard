@@ -356,6 +356,21 @@ project's decisions file:
    - turns on Dependabot alerts for the `origin` repo, because
      `dependency-review` fails on the adoption PR without the dependency
      graph (needs admin rights; otherwise turn them on by hand).
+   Only files that are relevant or useful to the project stay. List the
+   standard's files, folders, hooks and `.gitignore` lines a repo does not
+   use in `.github/repo-standard-exclude`, one per line with the reason
+   after `#`:
+
+   ```text
+   CODE_OF_CONDUCT.md        # no outside contributors
+   .vale/                    # a trailing slash covers the whole folder
+   hook:vale
+   gitignore:site/
+   ```
+
+   `apply-overlay.sh` never copies, parks or merges a listed item, so a
+   re-run does not bring it back, and `audit.sh` reports it as N/A. A
+   re-run also never appends an overlay section a file already has.
 4. Never rewrite history. Set `bootstrap-sha` for release-please and the
    manifest version to the latest existing tag.
 5. Existing coverage becomes the floor; it must not drop. Set
