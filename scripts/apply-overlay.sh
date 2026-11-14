@@ -213,7 +213,8 @@ if [ "$retrofit" = 1 ]; then
   remote="$(git -C "$target" remote get-url origin 2>/dev/null || true)"
   slug="$(echo "$remote" | sed -nE 's#^(https://github\.com/|git@github\.com:)([^/]+/[^/]+)$#\2#p' | sed 's/\.git$//')"
   if [ -n "$slug" ]; then
-    if gh_as "$owner" api -X PUT "repos/$slug/vulnerability-alerts" --silent 2>/dev/null; then
+    # Subshell: gh_as exits through die when the owner has no gh login.
+    if (gh_as "$owner" api -X PUT "repos/$slug/vulnerability-alerts" --silent) 2>/dev/null; then
       info "Dependabot alerts on for $slug (dependency-review needs them)"
     else
       echo "warning: could not turn on Dependabot alerts for $slug; dependency-review will fail until they are on" >&2
