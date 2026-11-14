@@ -111,6 +111,7 @@ merge_gitignore() {
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in ''|'#'*) continue ;; esac
     grep -qxF -- "$line" "$into" && continue
+    excluded "$target" "gitignore:$line" && continue
     if [ "$added" = 0 ]; then
       [ -s "$into" ] && [ -n "$(tail -c 1 "$into")" ] && echo >> "$into"
       grep -qxF "# Added by the repo standard" "$into" ||
@@ -120,6 +121,13 @@ merge_gitignore() {
     echo "$line" >> "$into"
   done < "$from"
 }
+# Files on the repo's exclude list (.github/repo-standard-exclude) are never
+# copied or parked, so a re-run does not bring back what the repo dropped.
+if [ -f "$target/$EXCLUDE_FILE" ]; then
+  (cd "$stage" && find . -type f | sed 's#^\./##') | while read -r rel; do
+    if excluded "$target" "$rel"; then rm -f "$stage/$rel"; echo "note: $rel skipped (on the repo's exclude list)"; fi
+  done
+fi
 
 # put_fragment FILE MARKER FRAGMENT MODE: merge a fragment into FILE when FILE
 # still carries the template MARKER (or in default mode), else park it for a
@@ -127,6 +135,13 @@ merge_gitignore() {
 put_fragment() {
   local file="$1" marker="$2" frag="$3" mode="$4"
   [ -f "$frag" ] && [ -s "$frag" ] || return 0
+  # Re-runs: a marker with content after it was merged before (by this script
+  # or by hand), so appending again would duplicate it.
+  if [ "$retrofit" = 1 ] && [ "$mode" = append ] && [ -f "$file" ] &&
+      awk -v m="$marker" 'index($0, m) { seen = 1; next } seen && NF { found = 1 } END { exit !found }' "$file"; then
+    echo "note: ${file#"$target"/} already has the overlay's section; not appended again"
+    return 0
+  fi
   if [ "$retrofit" = 0 ] || { [ -f "$file" ] && grep -q "$marker" "$file"; }; then
     if [ "$mode" = replace ]; then cp "$frag" "$file"; else cat "$frag" >> "$file"; fi
   else
