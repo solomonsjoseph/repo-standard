@@ -166,6 +166,7 @@ release-please-config.json  .release-please-manifest.json
   pull_request_template.md
   CODEOWNERS              routing only, never a required review
   dependabot.yml
+  repo-standard.yml       standard version, overlay and add-ons; written by the scripts
   workflows/              ci.yml, pr-title.yml, release-please.yml, main-guard.yml
                           links.yml (weekly external link check)
                           public repos add codeql.yml, dependency-review.yml, scorecard.yml

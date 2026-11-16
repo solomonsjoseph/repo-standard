@@ -239,4 +239,30 @@ if [ "$retrofit" = 1 ]; then
     echo "note: no GitHub origin remote; turn on Dependabot alerts before opening the PR" >&2
   fi
 fi
-info "overlay $overlay applied to $target"
+# Stamp the repository with the standard version it now follows (ADR 0002),
+# its language overlay and its add-ons. Language overlays carry a
+# _release-type; anything else is an add-on. Re-runs update the file in
+# place. Only the version is recorded, never a link to the source, so the
+# stamp suits accounts that must stay unlinked.
+stamp="$target/.github/repo-standard.yml"
+std_version="$(sed -nE 's/^[[:space:]]*"\.": "([^"]+)".*/\1/p' "$STANDARD_ROOT/.release-please-manifest.json")"
+st_overlay="$(sed -n 's/^overlay: //p' "$stamp" 2>/dev/null || true)"
+st_addons="$(sed -n 's/^addons: \[\(.*\)\]$/\1/p' "$stamp" 2>/dev/null || true)"
+st_vis="$(sed -n 's/^visibility: //p' "$stamp" 2>/dev/null || true)"
+if [ -f "$src/_release-type" ]; then
+  st_overlay="$overlay"
+  if [ "$public" = 1 ]; then st_vis=public; else st_vis=private; fi
+else
+  case ", $st_addons," in *", $overlay,"*) ;; *) st_addons="${st_addons:+$st_addons, }$overlay" ;; esac
+fi
+mkdir -p "$target/.github"
+cat > "$stamp" <<STAMP
+# Written by repo-standard (scripts/apply-overlay.sh): the version of the
+# standard this repository follows, and what was applied from it. Updated by
+# the scripts, not by hand.
+standard-version: $std_version
+overlay: ${st_overlay:-none}
+addons: [$st_addons]
+visibility: ${st_vis:-unknown}
+STAMP
+info "overlay $overlay applied to $target (standard $std_version)"

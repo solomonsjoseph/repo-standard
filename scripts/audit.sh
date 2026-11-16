@@ -49,6 +49,13 @@ import os, re, sys
 name = re.compile(os.environ["RE"], re.I); exempt = re.compile(os.environ["EX"], re.I)
 print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exempt.search(p)))' || true)"
 chk "no committed plan or notes files${stray:+ (found: $stray)}" "[ -z \"\$stray\" ]"
+# The stamp written by apply-overlay.sh (ADR 0002): which version this repo follows.
+std_version="$(sed -nE 's/^[[:space:]]*"\.": "([^"]+)".*/\1/p' "$STANDARD_ROOT/.release-please-manifest.json")"
+repo_version="$(sed -n 's/^standard-version: //p' "$dir/.github/repo-standard.yml" 2>/dev/null || true)"
+chk "stamped with a standard version (.github/repo-standard.yml${repo_version:+: $repo_version})" "[ -n \"\$repo_version\" ]"
+if [ -n "$repo_version" ]; then
+  chk "follows the current standard ($std_version)" "[ \"\$repo_version\" = \"\$std_version\" ]"
+fi
 chk "commit-msg hook installed locally" "[ -f '$dir/.git/hooks/commit-msg' ]"
 # The pre-push guard comes from the machine's git template (setup-machine.sh);
 # pre-commit keeps an existing hook as pre-push.legacy when it installs its own.
