@@ -12,7 +12,7 @@ status=0
 # .pre-commit-config.yaml (extra excludes for template/ and overlays/),
 # release-please-config.json and the manifest.
 for f in .editorconfig .gitattributes .gitignore .markdownlint.yaml .vale.ini .lychee.toml \
-  CODE_OF_CONDUCT.md SECURITY.md scripts/check_docs.py \
+  CODE_OF_CONDUCT.md SECURITY.md SUPPORT.md .claude/settings.json scripts/check_docs.py \
   .github/pull_request_template.md .github/dependabot.yml \
   .github/ISSUE_TEMPLATE/bug_report.yml .github/ISSUE_TEMPLATE/feature_request.yml .github/ISSUE_TEMPLATE/config.yml \
   .github/workflows/ci.yml .github/workflows/pr-title.yml .github/workflows/release-please.yml .github/workflows/links.yml \

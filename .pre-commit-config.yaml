@@ -55,6 +55,15 @@ repos:
         exclude: ^(CHANGELOG\.md|template/.*|overlays/.*)$
   - repo: local
     hooks:
+      - id: no-ai-attribution
+        name: commit messages carry no AI attribution lines
+        # Co-Authored-By trailers naming an AI tool, and tool footers such as
+        # "Generated with Claude Code" (STANDARD.md section 5). Human
+        # co-authors stay allowed. The pr-title check applies the same rule to
+        # the PR body, which becomes the squash commit message.
+        language: pygrep
+        entry: '(?i)^\s*co-authored-by:.*(claude|anthropic|copilot|openai|chatgpt|gemini|cursor|codex|devin)|generated (with|by) .*(claude|copilot|chatgpt|gemini|cursor|codex)'
+        stages: [commit-msg]
       - id: ascii-only
         name: source files are plain ASCII
         language: pygrep

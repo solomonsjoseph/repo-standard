@@ -233,7 +233,20 @@ Format (Conventional Commits 1.0, Angular conventions):
 - One logical change per commit. Commits are signed with SSH when the
   owner's private config sets `SIGNING_KEY` (the key must also be added on
   GitHub as a signing key); the ruleset does not require signatures yet.
-- No AI attribution lines in commits or PRs.
+- No AI attribution lines in commits or PR bodies: no `Co-Authored-By`
+  naming an AI tool and no "Generated with" footers. AI use is disclosed
+  once per repository instead: `CONTRIBUTING.md` says the project is
+  developed with AI coding agents and that the maintainer reviews every
+  change, and sets the terms for contributions made with AI help
+  (understand every line, disclose significant AI use in the PR description
+  in plain words, no unreviewed autonomous-agent changes). When contributing
+  to another project, follow that project's policy, for example an
+  `Assisted-by:` trailer where it asks for one.
+  [ADR 0003](docs/dev/adr/0003-ai-attribution.md) records why. Enforcement:
+  `attribution` set to empty strings in the committed `.claude/settings.json`,
+  the `no-ai-attribution` commit-msg hook, and a PR body check in the
+  required `pr-title` job (the squash commit message comes from the PR
+  body, which local hooks never see).
 
 Only `feat`, `fix`, `perf` and breaking changes appear in the changelog and
 bump the version: `fix` and `perf` bump the patch, `feat` the minor, a

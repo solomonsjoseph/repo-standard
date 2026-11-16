@@ -56,7 +56,8 @@ pkg="$(echo "$name" | tr '[:upper:]-' '[:lower:]_')"
 case "$overlay" in swift|r) pkg="$(echo "$name" | perl -pe 's/(^|[-_])(\w)/\U$2/g')" ;; esac
 
 fragments=(--exclude /_ci.yml --exclude /_precommit.yaml --exclude /_dependabot.yml
-  --exclude /_gitignore --exclude /_release-type --exclude /_codeql-langs)
+  --exclude /_gitignore --exclude /_release-type --exclude /_codeql-langs
+  --exclude /_agents.md)
 merge_dir="$target/.scratch/repo-standard-merge/$overlay"
 stage="$(mktemp -d)"; trap 'rm -rf "$stage"' EXIT
 
@@ -182,6 +183,7 @@ fi
 put_fragment "$target/.github/workflows/ci.yml" "Language overlays replace this file" "$src/_ci.yml" replace
 put_fragment "$target/.pre-commit-config.yaml" "# LANGUAGE HOOKS (added by overlay)" "$src/_precommit.yaml" append
 put_fragment "$target/.github/dependabot.yml" "# LANGUAGE ECOSYSTEMS (added by overlay)" "$src/_dependabot.yml" append
+put_fragment "$target/AGENTS.md" "<!-- LANGUAGE COMMANDS (added by overlay) -->" "$src/_agents.md" append
 if [ -s "$src/_gitignore" ]; then
   if [ "$retrofit" = 1 ]; then
     merge_gitignore "$src/_gitignore" "$target/.gitignore"
