@@ -18,6 +18,8 @@
     { "type": "chore", "section": "Chores", "hidden": true }
   ],
   "packages": {
-    ".": {}
+    ".": {
+      "extra-files": [{ "type": "generic", "path": "STANDARD.md" }]
+    }
   }
 }

@@ -48,7 +48,11 @@ Private per-owner settings live in `~/.config/repo-standard/OWNER.env`; see
 - `org-defaults/` holds the extra files for each account's `.github` repo.
 - Decisions are recorded as ADRs in `docs/dev/adr/`.
 
-Change the standard through a PR, then run `scripts/sync.sh` for each account.
+Change the standard through a PR. Merging the release PR tags a new
+`vX.Y.Z` and updates `CHANGELOG.md` (see
+[ADR 0002](docs/dev/adr/0002-version-the-standard.md) for what counts as
+major, minor, or patch). After each release, run `scripts/sync.sh` for each
+account.
 
 ## Contributing
 

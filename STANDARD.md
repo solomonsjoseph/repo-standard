@@ -1,10 +1,17 @@
 # Repo standard
 
-Version 1.3 (2026-11-15). This is the standard every repository of the
-account follows. It combines practices from Google (Angular, Kubernetes, Go,
-eng-practices), Microsoft (VS Code, TypeScript, Release Flow), Meta (React),
-AWS (CDK), GitHub's own guidance, DORA research, and the OpenSSF security
-baselines, sized for a solo maintainer.
+Version 1.3.0 <!-- x-release-please-version -->
+
+This is the standard every repository of the account follows. It combines
+practices from Google (Angular, Kubernetes, Go, eng-practices), Microsoft
+(VS Code, TypeScript, Release Flow), Meta (React), AWS (CDK), GitHub's own
+guidance, DORA research, and the OpenSSF security baselines, sized for a
+solo maintainer.
+
+The standard is released like any other repository: release-please sets the
+version above, tags `vX.Y.Z`, and lists every change in `CHANGELOG.md`
+(created by the first release). [ADR 0002](docs/dev/adr/0002-version-the-standard.md)
+defines what counts as a major, minor, or patch change.
 
 Words in capitals (MUST, SHOULD, MAY) follow RFC 2119.
 
