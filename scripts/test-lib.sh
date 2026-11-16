@@ -65,8 +65,11 @@ else
 fi
 
 if command -v rsync >/dev/null; then
+  # Fresh copies: the symlink test above added to the source after
+  # $work/plain was made.
   rsync -a "$src/" "$work/r-plain/"
-  check "matches rsync -a" "[ \"\$(list '$work/plain')\" = \"\$(list '$work/r-plain')\" ]"
+  copy_tree "$src" "$work/plain2"
+  check "matches rsync -a" "[ \"\$(list '$work/plain2')\" = \"\$(list '$work/r-plain')\" ]"
   rsync -a --exclude /_ci.yml --exclude /src/ "$src/" "$work/r-excl/"
   copy_tree "$src" "$work/excl2" --exclude /_ci.yml --exclude /src/
   check "matches rsync -a --exclude" "[ \"\$(list '$work/excl2')\" = \"\$(list '$work/r-excl')\" ]"
