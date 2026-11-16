@@ -92,7 +92,7 @@ It applies the overlay, placeholders, license, and settings, and opens a
 A new repo keeps only relevant files, as a retrofit does: after creating
 it, review the files it received, delete the ones the project does not
 use, and list them in `.github/repo-standard-exclude` (section 13,
-step 3) so later syncs and audits leave them out.
+step 3) so later `apply-overlay.sh` runs and audits leave them out.
 
 ## 3. Repository layout
 
