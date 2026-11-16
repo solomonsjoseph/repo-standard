@@ -1,6 +1,6 @@
 # Repo standard
 
-Version 1.2 (2026-11-12). This is the standard every repository of the
+Version 1.3 (2026-11-15). This is the standard every repository of the
 account follows. It combines practices from Google (Angular, Kubernetes, Go,
 eng-practices), Microsoft (VS Code, TypeScript, Release Flow), Meta (React),
 AWS (CDK), GitHub's own guidance, DORA research, and the OpenSSF security
@@ -42,18 +42,34 @@ idea
      permissions (SHA pinning required), security features, labels, the
      `main` ruleset, and the `release-tags` ruleset.
 3. Store the release App key as a repo secret. The owner does this; Claude
-   never reads the key. Keep the key in the macOS Keychain rather than as a
-   file. The Keychain returns multi-line values as hex, so store the key
-   base64-encoded, once per account, then delete the downloaded file:
+   never reads the key. Keep the key in the operating system's secret store
+   rather than as a file: store it once per account, then delete the
+   downloaded file. Then set it for each repo.
+
+   On macOS, use the Keychain. It returns multi-line values as hex, so store
+   the key base64-encoded:
 
    ```bash
    security add-generic-password -s release-app-key -a OWNER -w "$(base64 < release-app.pem)"
+   security find-generic-password -s release-app-key -a OWNER -w | base64 -d | gh secret set RELEASE_APP_PRIVATE_KEY --repo OWNER/NAME
    ```
 
-   Then, for each repo:
+   On Windows, run these in Git Bash. The key is encrypted with DPAPI, so
+   only your Windows account on this machine can read it. Pipe it from
+   Git Bash, not from PowerShell, because PowerShell 5.1 adds a byte-order
+   mark to piped text, which breaks the key:
 
    ```bash
-   security find-generic-password -s release-app-key -a OWNER -w | base64 -d | gh secret set RELEASE_APP_PRIVATE_KEY --repo OWNER/NAME
+   key="$(cygpath -w ~/.config/repo-standard/release-app-key-OWNER.xml)"
+   powershell.exe -NoProfile -Command "Get-Content -Raw 'release-app.pem' | ConvertTo-SecureString -AsPlainText -Force | Export-Clixml '$key'"
+   powershell.exe -NoProfile -Command "[Net.NetworkCredential]::new('', (Import-Clixml '$key')).Password" | tr -d '\r' | gh secret set RELEASE_APP_PRIVATE_KEY --repo OWNER/NAME
+   ```
+
+   On Linux, use the desktop keyring through `secret-tool` (libsecret):
+
+   ```bash
+   base64 -w0 < release-app.pem | secret-tool store --label="release-app-key OWNER" service release-app-key account OWNER
+   secret-tool lookup service release-app-key account OWNER | base64 -d | gh secret set RELEASE_APP_PRIVATE_KEY --repo OWNER/NAME
    ```
 
    Until the key, the `RELEASE_APP_CLIENT_ID` variable, and the App
@@ -72,6 +88,20 @@ The bootstrap commit is the only commit that goes straight to `main`.
 The scripts read private per-owner settings from
 `~/.config/repo-standard/OWNER.env` (display name, release App client id,
 SSH signing key) and refuse owners without one.
+
+**Platforms.** The scripts are bash and run on macOS, Linux, and Windows
+(in Git Bash, which Git for Windows installs). They need git, gh, perl,
+jq, python3 3.9 or later, and pre-commit 4.7 or later; uv and pnpm are
+needed for the python and ts overlays. Run `scripts/doctor.sh` on a new
+machine. It is read-only and checks the tools, the private config, the gh
+logins and, on Windows, two settings that break hooks:
+
+- Windows Smart App Control blocks the unsigned binaries that pre-commit
+  downloads or builds (Vale, gitleaks, actionlint, and compiled Python
+  extensions). Run hooks in WSL, or skip only those hooks locally with
+  `SKIP=...`. CI still runs every hook, so the merge gate is unchanged.
+- `core.autocrlf=true` (the Git for Windows default) is harmless inside
+  standard repos, because `.gitattributes` forces LF line endings.
 
 **The release App.** One private GitHub App per account, installed on all of
 that account's repositories. Repository permissions: Contents read and

@@ -113,6 +113,21 @@ make_locks() {
   esac
 }
 
+# release_key_cmd OWNER OWNER/REPO: the command that copies the owner's stored
+# release App key into the repo secret, for this platform (STANDARD.md
+# section 2 has the matching store-once commands). Printed for the owner to
+# run; the scripts never read the key themselves.
+release_key_cmd() {
+  local set="gh secret set RELEASE_APP_PRIVATE_KEY --repo $2"
+  case "$(uname -s)" in
+    Darwin) echo "security find-generic-password -s release-app-key -a $1 -w | base64 -d | $set" ;;
+    MINGW*|MSYS*|CYGWIN*)
+      printf '%s
+' "powershell.exe -NoProfile -Command \"[Net.NetworkCredential]::new('', (Import-Clixml '\$(cygpath -w ~/.config/repo-standard/release-app-key-$1.xml)')).Password\" | tr -d '\\r' | $set" ;;
+    *) echo "secret-tool lookup service release-app-key account $1 | base64 -d | $set" ;;
+  esac
+}
+
 # copy_tree SRC DST [--ignore-existing] [--delete] [--exclude /NAME]...
 # Portable stand-in for `rsync -a SRC/ DST/`, because Git for Windows ships no
 # rsync. Copies the contents of SRC (hidden files included) into DST, keeping

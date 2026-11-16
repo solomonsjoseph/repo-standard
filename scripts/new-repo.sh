@@ -58,13 +58,14 @@ gh_as "$owner" repo create "$owner/$name" "--$vis" --description "$desc" \
 
 "$STANDARD_ROOT/scripts/apply-settings.sh" "$owner/$name" "$vis"
 
+key_cmd="$(release_key_cmd "$owner" "$owner/$name")"
 cat <<NEXT
 
 Done: https://github.com/$owner/$name
 
 Next steps (you, not Claude):
   1. Install the release App on this repo: https://github.com/settings/installations
-  2. security find-generic-password -s release-app-key -a $owner -w | base64 -d | gh secret set RELEASE_APP_PRIVATE_KEY --repo $owner/$name
+  2. $key_cmd
      (store the key once first; see STANDARD.md section 2)
   3. cd $dir && pre-commit install --hook-type pre-commit --hook-type commit-msg
 NEXT
