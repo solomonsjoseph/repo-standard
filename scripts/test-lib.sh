@@ -51,6 +51,12 @@ copy_tree "$src" "$work/del" --delete --exclude /src/
 check "--delete removes files and folders the source lacks" "[ ! -e '$work/del/extra.md' ] && [ ! -e '$work/del/stale' ]"
 check "--delete leaves excluded entries alone" "[ -f '$work/del/src/kept.py' ]"
 
+mkdir -p "$work/types/README.md"; echo mine > "$work/types/docs"
+copy_tree "$src" "$work/types" --ignore-existing 2>"$work/types.err"
+check "skips a file where the destination has a folder" "[ -d '$work/types/README.md' ]"
+check "skips a folder where the destination has a file" "[ \"\$(cat '$work/types/docs')\" = mine ]"
+check "keeps copying after a type clash, with a note" "[ -f '$work/types/.github/workflows/ci.yml' ] && grep -q 'skipped docs/' '$work/types.err'"
+
 check "rejects an unknown option" "! (copy_tree '$src' '$work/bad' --nope) 2>/dev/null"
 check "rejects a missing source" "! (copy_tree '$work/missing' '$work/bad') 2>/dev/null"
 
@@ -60,6 +66,9 @@ ln -s README.md "$src/link.md" 2>/dev/null || true
 if [ -L "$src/link.md" ]; then
   copy_tree "$src" "$work/links"
   check "copies a symlink as a symlink" "[ -L '$work/links/link.md' ]"
+  mkdir -p "$work/outside" "$work/linked"; ln -s ../outside "$work/linked/docs"
+  copy_tree "$src" "$work/linked" --ignore-existing 2>/dev/null
+  check "never writes through a symlinked destination folder" "[ -z \"\$(ls -A '$work/outside')\" ]"
 else
   echo "skip  symlink test (this platform does not create symlinks)"
 fi

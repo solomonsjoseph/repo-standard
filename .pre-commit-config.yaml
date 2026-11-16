@@ -20,6 +20,9 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=500]
       - id: detect-private-key
+      # Windows clones have core.filemode=false, so a new script is added
+      # without its executable bit unless this catches it.
+      - id: check-shebang-scripts-are-executable
       - id: no-commit-to-branch
         args: [--branch, main]
   - repo: https://github.com/compilerla/conventional-pre-commit

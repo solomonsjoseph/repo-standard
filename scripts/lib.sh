@@ -122,8 +122,7 @@ release_key_cmd() {
   case "$(uname -s)" in
     Darwin) echo "security find-generic-password -s release-app-key -a $1 -w | base64 -d | $set" ;;
     MINGW*|MSYS*|CYGWIN*)
-      printf '%s
-' "powershell.exe -NoProfile -Command \"[Net.NetworkCredential]::new('', (Import-Clixml '\$(cygpath -w ~/.config/repo-standard/release-app-key-$1.xml)')).Password\" | tr -d '\\r' | $set" ;;
+      printf '%s\n' "powershell.exe -NoProfile -Command \"[Net.NetworkCredential]::new('', (Import-Clixml '\$(cygpath -w ~/.config/repo-standard/release-app-key-$1.xml)')).Password.TrimEnd()\" | tr -d '\\r' | $set" ;;
     *) echo "secret-tool lookup service release-app-key account $1 | base64 -d | $set" ;;
   esac
 }
@@ -134,10 +133,13 @@ release_key_cmd() {
 # modes, times and symlinks. --exclude names a top-level entry of SRC, like an
 # anchored rsync pattern (`/src/` or `/_ci.yml`). --ignore-existing keeps files
 # DST already has. --delete removes what SRC does not have (excluded entries
-# are left alone, as rsync does).
+# are left alone, as rsync does). An entry whose type differs in DST (a file
+# where SRC has a folder, or the reverse), or a folder that is a symlink in
+# DST, is skipped with a note instead of being written through or stopping
+# the copy halfway.
 copy_tree() {
-  local src="${1%/}" dst="${2%/}" keep=0 del=0 rel top e skip
-  local -a excl=()
+  local src="${1%/}" dst="${2%/}" keep=0 del=0 rel top e skip b list
+  local -a excl=() blocked=()
   shift 2
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -150,27 +152,45 @@ copy_tree() {
   done
   [ -d "$src" ] || die "copy_tree: $src is not a directory"
   mkdir -p "$dst"
+  # List first, so a find error stops the copy instead of cutting it short.
+  list="$(mktemp)"
   # find lists a folder before its contents, so folders exist before files.
+  (cd "$src" && find . -mindepth 1 -print0) > "$list" ||
+    { rm -f "$list"; die "copy_tree: cannot list $src"; }
   while IFS= read -r -d '' rel; do
     rel="${rel#./}"; top="${rel%%/*}"; skip=0
     for e in ${excl[@]+"${excl[@]}"}; do [ "$top" = "$e" ] && skip=1; done
+    for b in ${blocked[@]+"${blocked[@]}"}; do case "$rel" in "$b"/*) skip=1 ;; esac; done
     [ "$skip" = 1 ] && continue
     if [ -d "$src/$rel" ] && [ ! -L "$src/$rel" ]; then
+      if [ -L "$dst/$rel" ] || { [ -e "$dst/$rel" ] && [ ! -d "$dst/$rel" ]; }; then
+        echo "note: copy_tree skipped $rel/: the destination has a file or symlink there" >&2
+        blocked+=("$rel")
+        continue
+      fi
       mkdir -p "$dst/$rel"
+      continue
+    fi
+    if [ -d "$dst/$rel" ] && [ ! -L "$dst/$rel" ]; then
+      echo "note: copy_tree skipped $rel: the destination has a folder there" >&2
       continue
     fi
     if [ "$keep" = 1 ] && { [ -e "$dst/$rel" ] || [ -L "$dst/$rel" ]; }; then continue; fi
     rm -f "$dst/$rel"  # replace a symlink instead of writing through it
     cp -Pp "$src/$rel" "$dst/$rel"
-  done < <(cd "$src" && find . -mindepth 1 -print0)
-  [ "$del" = 1 ] || return 0
-  # Deepest first, so a folder is checked after everything inside it.
-  while IFS= read -r -d '' rel; do
-    rel="${rel#./}"; top="${rel%%/*}"; skip=0
-    for e in ${excl[@]+"${excl[@]}"}; do [ "$top" = "$e" ] && skip=1; done
-    [ "$skip" = 1 ] && continue
-    { [ -e "$src/$rel" ] || [ -L "$src/$rel" ]; } || rm -rf "${dst:?}/$rel"
-  done < <(cd "$dst" && find . -mindepth 1 -depth -print0)
+  done < "$list"
+  if [ "$del" = 1 ]; then
+    # Deepest first, so a folder is checked after everything inside it.
+    (cd "$dst" && find . -mindepth 1 -depth -print0) > "$list" ||
+      { rm -f "$list"; die "copy_tree: cannot list $dst"; }
+    while IFS= read -r -d '' rel; do
+      rel="${rel#./}"; top="${rel%%/*}"; skip=0
+      for e in ${excl[@]+"${excl[@]}"}; do [ "$top" = "$e" ] && skip=1; done
+      [ "$skip" = 1 ] && continue
+      { [ -e "$src/$rel" ] || [ -L "$src/$rel" ]; } || rm -rf "${dst:?}/$rel"
+    done < "$list"
+  fi
+  rm -f "$list"
 }
 
 # File-name rule shared with the no-scratch-files pre-commit hook (keep the two

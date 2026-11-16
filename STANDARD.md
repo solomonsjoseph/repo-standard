@@ -62,7 +62,7 @@ idea
    ```bash
    key="$(cygpath -w ~/.config/repo-standard/release-app-key-OWNER.xml)"
    powershell.exe -NoProfile -Command "Get-Content -Raw 'release-app.pem' | ConvertTo-SecureString -AsPlainText -Force | Export-Clixml '$key'"
-   powershell.exe -NoProfile -Command "[Net.NetworkCredential]::new('', (Import-Clixml '$key')).Password" | tr -d '\r' | gh secret set RELEASE_APP_PRIVATE_KEY --repo OWNER/NAME
+   powershell.exe -NoProfile -Command "[Net.NetworkCredential]::new('', (Import-Clixml '$key')).Password.TrimEnd()" | tr -d '\r' | gh secret set RELEASE_APP_PRIVATE_KEY --repo OWNER/NAME
    ```
 
    On Linux, use the desktop keyring through `secret-tool` (libsecret):
