@@ -113,6 +113,51 @@ make_locks() {
   esac
 }
 
+# copy_tree SRC DST [--ignore-existing] [--delete] [--exclude /NAME]...
+# Portable stand-in for `rsync -a SRC/ DST/`, because Git for Windows ships no
+# rsync. Copies the contents of SRC (hidden files included) into DST, keeping
+# modes, times and symlinks. --exclude names a top-level entry of SRC, like an
+# anchored rsync pattern (`/src/` or `/_ci.yml`). --ignore-existing keeps files
+# DST already has. --delete removes what SRC does not have (excluded entries
+# are left alone, as rsync does).
+copy_tree() {
+  local src="${1%/}" dst="${2%/}" keep=0 del=0 rel top e skip
+  local -a excl=()
+  shift 2
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --ignore-existing) keep=1 ;;
+      --delete) del=1 ;;
+      --exclude) top="${2#/}"; excl+=("${top%/}"); shift ;;
+      *) die "copy_tree: unknown option $1" ;;
+    esac
+    shift
+  done
+  [ -d "$src" ] || die "copy_tree: $src is not a directory"
+  mkdir -p "$dst"
+  # find lists a folder before its contents, so folders exist before files.
+  while IFS= read -r -d '' rel; do
+    rel="${rel#./}"; top="${rel%%/*}"; skip=0
+    for e in ${excl[@]+"${excl[@]}"}; do [ "$top" = "$e" ] && skip=1; done
+    [ "$skip" = 1 ] && continue
+    if [ -d "$src/$rel" ] && [ ! -L "$src/$rel" ]; then
+      mkdir -p "$dst/$rel"
+      continue
+    fi
+    if [ "$keep" = 1 ] && { [ -e "$dst/$rel" ] || [ -L "$dst/$rel" ]; }; then continue; fi
+    rm -f "$dst/$rel"  # replace a symlink instead of writing through it
+    cp -Pp "$src/$rel" "$dst/$rel"
+  done < <(cd "$src" && find . -mindepth 1 -print0)
+  [ "$del" = 1 ] || return 0
+  # Deepest first, so a folder is checked after everything inside it.
+  while IFS= read -r -d '' rel; do
+    rel="${rel#./}"; top="${rel%%/*}"; skip=0
+    for e in ${excl[@]+"${excl[@]}"}; do [ "$top" = "$e" ] && skip=1; done
+    [ "$skip" = 1 ] && continue
+    { [ -e "$src/$rel" ] || [ -L "$src/$rel" ]; } || rm -rf "${dst:?}/$rel"
+  done < <(cd "$dst" && find . -mindepth 1 -depth -print0)
+}
+
 # File-name rule shared with the no-scratch-files pre-commit hook (keep the two
 # in sync; scripts/check-drift.sh verifies it in repo-standard).
 # shellcheck disable=SC2034  # used by audit.sh

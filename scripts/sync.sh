@@ -43,11 +43,11 @@ stage_base() { # DIR: CI and hook configuration so the repo passes its own check
   cp "$t/.github/workflows/ci.yml" "$t/.github/workflows/pr-title.yml" "$t/.github/workflows/links.yml" "$1/.github/workflows/"
   cp "$t/.github/dependabot.yml" "$t/.github/CODEOWNERS" "$1/.github/"
   for f in .pre-commit-config.yaml .markdownlint.yaml .editorconfig .gitattributes .gitignore .vale.ini .lychee.toml; do cp "$t/$f" "$1/$f"; done
-  rsync -a "$t/.vale/" "$1/.vale/"
+  copy_tree "$t/.vale" "$1/.vale"
   cp "$t/scripts/check_docs.py" "$1/scripts/"
 }
 stage_template() {
-  rsync -a "$STANDARD_ROOT/template/" "$1/"
+  copy_tree "$STANDARD_ROOT/template" "$1"
   # Fill what would fail this repo's own hooks; keep the rest for finish-repo.sh.
   perl -pi -e 's/__DESCRIPTION__/One-paragraph description of this project./g' "$1/README.md"
   perl -pi -e 's/__REPO_NAME__/this project/g' "$1/docs/index.md" "$1/docs/dev/index.md"
@@ -58,9 +58,9 @@ stage_template() {
 }
 stage_defaults() {
   stage_base "$1"
-  rsync -a "$STANDARD_ROOT/org-defaults/" "$1/"
+  copy_tree "$STANDARD_ROOT/org-defaults" "$1"
   cp "$STANDARD_ROOT/template/CODE_OF_CONDUCT.md" "$1/"
-  rsync -a --delete "$STANDARD_ROOT/template/.github/ISSUE_TEMPLATE/" "$1/.github/ISSUE_TEMPLATE/"
+  copy_tree "$STANDARD_ROOT/template/.github/ISSUE_TEMPLATE" "$1/.github/ISSUE_TEMPLATE" --delete
   render_owner "$1"
 }
 stage_standard() {

@@ -61,8 +61,8 @@ merge_dir="$target/.scratch/repo-standard-merge/$overlay"
 stage="$(mktemp -d)"; trap 'rm -rf "$stage"' EXIT
 
 # Stage everything this overlay would add, with placeholders filled in.
-[ "$retrofit" = 1 ] && rsync -a "$STANDARD_ROOT/template/" "$stage/"
-rsync -a "${fragments[@]}" "$src/" "$stage/"
+[ "$retrofit" = 1 ] && copy_tree "$STANDARD_ROOT/template" "$stage"
+copy_tree "$src" "$stage" "${fragments[@]}"
 # detect_codeql_langs DIR: CodeQL languages found in DIR's tracked files.
 detect_codeql_langs() {
   git -C "$1" ls-files 2>/dev/null | awk -F. 'NF > 1 { print tolower($NF) }' | sort -u |
@@ -82,7 +82,7 @@ detect_codeql_langs() {
 }
 
 if [ "$public" = 1 ] && [ -f "$src/_codeql-langs" ]; then
-  rsync -a "$STANDARD_ROOT/overlays/public/" "$stage/"
+  copy_tree "$STANDARD_ROOT/overlays/public" "$stage"
   if [ -n "$codeql_langs" ]; then
     lang_list="$codeql_langs"
   else
@@ -171,13 +171,12 @@ if [ "$retrofit" = 1 ]; then
       echo "note: $rel exists; the standard's version is in .scratch/repo-standard-merge/standard/$rel"
     done
   # Sample source and tests are for new repos; an existing repo has its own.
-  rsync -a --ignore-existing \
+  copy_tree "$stage" "$target" --ignore-existing \
     --exclude '/src/' --exclude '/tests/' --exclude '/Sources/' --exclude '/Tests/' \
-    --exclude '/cmd/' --exclude '/internal/' --exclude '/R/' --exclude '/api/' \
-    "$stage/" "$target/"
+    --exclude '/cmd/' --exclude '/internal/' --exclude '/R/' --exclude '/api/'
 else
   info "copying overlay $overlay"
-  rsync -a "$stage/" "$target/"
+  copy_tree "$stage" "$target"
 fi
 
 put_fragment "$target/.github/workflows/ci.yml" "Language overlays replace this file" "$src/_ci.yml" replace

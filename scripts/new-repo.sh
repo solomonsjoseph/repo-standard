@@ -33,7 +33,7 @@ gh_as "$owner" repo view "$owner/$name" >/dev/null 2>&1 && die "$owner/$name alr
 
 info "building $dir"
 mkdir -p "$dir"
-rsync -a "$STANDARD_ROOT/template/" "$dir/"
+copy_tree "$STANDARD_ROOT/template" "$dir"
 pub_flag=(); [ "$vis" = public ] && pub_flag=(--public)
 "$STANDARD_ROOT/scripts/apply-overlay.sh" "$dir" "$overlay" ${pub_flag[@]+"${pub_flag[@]}"} \
   --owner "$owner" --name "$name" --desc "$desc"

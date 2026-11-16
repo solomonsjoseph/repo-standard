@@ -107,3 +107,9 @@ repos:
         entry: scripts/check-drift.sh
         pass_filenames: false
         always_run: true
+      - id: test-lib
+        name: scripts/lib.sh helpers pass their tests (repo-standard only)
+        language: script
+        entry: scripts/test-lib.sh
+        pass_filenames: false
+        files: ^scripts/(lib|test-lib)\.sh$
