@@ -1,6 +1,6 @@
 # Repo standard
 
-Version 1.2 (2026-11-12). This is the standard every repository of the
+Version 1.3 (2026-11-15). This is the standard every repository of the
 account follows. It combines practices from Google (Angular, Kubernetes, Go,
 eng-practices), Microsoft (VS Code, TypeScript, Release Flow), Meta (React),
 AWS (CDK), GitHub's own guidance, DORA research, and the OpenSSF security
@@ -88,6 +88,11 @@ scripts/finish-repo.sh OWNER/NAME OVERLAY public|private --license SPDX|none
 
 It applies the overlay, placeholders, license, and settings, and opens a
 `chore: finish repo-standard setup` PR.
+
+A new repo keeps only relevant files, as a retrofit does: after creating
+it, review the files it received, delete the ones the project does not
+use, and list them in `.github/repo-standard-exclude` (section 13,
+step 3) so later `apply-overlay.sh` runs and audits leave them out.
 
 ## 3. Repository layout
 
@@ -250,6 +255,15 @@ before merging any of them: merging the release PR is a release.
   what was deployed.
 - Retrofitted repos set `bootstrap-sha` so older, non-conventional history is
   ignored.
+- A repo MAY keep a hand-written `CHANGELOG.md` (an adjustment, section 12):
+  set `"skip-changelog": true` for the package in
+  `release-please-config.json` and add the version's entry on the release
+  PR branch before merging it. Tags and GitHub Releases still come from
+  release-please.
+- A repo in beta MAY use prerelease versions: `"versioning": "prerelease"`,
+  `"prerelease": true` and `"prerelease-type": "beta"` in
+  `release-please-config.json`, with a manifest version such as
+  `1.0.0-beta.2`.
 - Repos that publish packages or binaries add artifact attestations (or
   signed releases) and an SBOM.
 
@@ -336,7 +350,26 @@ project's decisions file:
 - whether the repo publishes a docs site (section 15) and from which
   trigger;
 - whether the user has admin rights. Without them, only files and hooks are
-  applied, never repository settings.
+  applied, never repository settings;
+- whether the repo has live users (beta testers, production). If it does,
+  standard work must not change the app's behavior (section 13, step 9);
+- the build toolchain to keep (for example `requirements.txt` and pip
+  instead of uv). The standard wraps the existing build, tests and lint;
+  moving to the overlay's toolchain is a separate PR;
+- release settings: the release-please type, prerelease versions (for
+  example `1.0.0-beta.2`), the files that carry the version
+  (`extra-files`), and whether `CHANGELOG.md` is generated or hand-written
+  (`"skip-changelog": true`, with the entry added on the release PR
+  branch);
+- which of the standard's files, folders, hooks and `.gitignore` lines the
+  project does not use, and which older paths the style hooks skip for now.
+
+Adjustments are recorded in two places. The choices and their reasons go
+in the project's private decisions file. Everything a script or hook must
+respect goes in the repo itself: `.github/repo-standard-exclude` for
+dropped items (section 13, step 3), the hook `exclude` patterns for skipped
+older paths, and `release-please-config.json` for release settings. A
+script never removes an adjustment it finds there.
 
 ## 13. Adopting the standard in an existing repo
 
@@ -383,7 +416,32 @@ project's decisions file:
 6. If the default branch is not `main`, rename it (asked per repo).
 7. List any committed plan or notes files for the owner; never delete them
    automatically.
-8. Run `scripts/apply-settings.sh` only after the PR merges and CI is green.
+8. Run every hook on every file before opening the PR
+   (`pre-commit run --all-files`). `HOOKS_SCOPE: changed` limits CI to the
+   files a PR touches, so an older file that fails a style hook would
+   block the first hotfix that edits it. Add the failing older paths to
+   that hook's `exclude` with a comment naming a `type/chore` issue to
+   re-enable them, and keep the security hooks (secrets, ASCII-only on new
+   files, commit message) on everywhere.
+9. Prove nothing broke. Record the last commit before the standard (the
+   baseline) and, before merging, check that:
+   - the app's own files differ from the baseline only where intended:
+     `git diff --stat BASELINE -- . ':!.github' ':!.pre-commit-config.yaml'`
+     lists every changed file, and each one is explained in the PR;
+   - the full test suite and the build pass, with the same results as on
+     the baseline;
+   - for repos with live users, a recorded run of the app passes in every
+     mode, from a fresh clone, as a first-time user would run it.
+10. Land the adoption in small PRs, one at a time: the adoption itself,
+    then the file review with its exclude list, then any legacy-path
+    excludes. Never open a PR on top of another open PR's branch; squash
+    merging rewrites that branch, so the stacked PR conflicts. Branch each
+    follow-up from the updated `main` instead.
+11. Dependabot opens many PRs right after adoption. Do not merge them in a
+    batch: open one `dependencies` issue to test them, merge each only after
+    tests (and, with live users, a recorded run) pass, and prefer a patch
+    release that fixes a security alert over a major-version jump.
+12. Run `scripts/apply-settings.sh` only after the PR merges and CI is green.
 
 ## 14. Labels
 
