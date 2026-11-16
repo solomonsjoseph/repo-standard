@@ -1,5 +1,8 @@
-# Blocks PRs that add dependencies with known high-severity vulnerabilities
-# (public repos). Informational: not a required check.
+# Fails on PRs that add dependencies with known high-severity
+# vulnerabilities, and comments the summary on the PR (hence
+# pull-requests: write). Public repos only: GitHub offers dependency review
+# for public repos on the Free plan. Not a required check, so a failure is a
+# signal to act on, not a merge block.
 name: dependency-review
 
 on:
