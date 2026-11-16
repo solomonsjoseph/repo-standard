@@ -1,0 +1,27 @@
+#!/bin/sh
+# repo-standard pre-push guard. scripts/setup-machine.sh installs it as a git
+# template hook (init.templateDir), so every clone and every `git init` gets
+# it. It refuses any push that would update or delete main on the remote:
+# changes reach main only through merged pull requests (STANDARD.md section 7).
+#
+# Git passes one line per ref being pushed on stdin:
+#   <local ref> <local sha> <remote ref> <remote sha>
+# All lines are checked, so `git push origin feat main`, `feat:main`,
+# `HEAD:refs/heads/main` and `:main` (deletion) are all caught, including
+# pushes of commits the remote already has.
+#
+# Not a security boundary: `git push --no-verify` skips it. The main-guard
+# workflow reports anything that reaches main without a merged pull request.
+# If pre-commit later installs its own pre-push hook, it keeps this one as
+# pre-push.legacy and still runs it.
+status=0
+# Only the remote ref matters; the other fields are read to keep columns aligned.
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main)
+      echo "pre-push: refusing to push to main on '$1'. Push a branch and open a pull request." >&2
+      status=1
+      ;;
+  esac
+done
+exit "$status"

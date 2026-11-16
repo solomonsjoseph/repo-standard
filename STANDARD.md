@@ -112,6 +112,19 @@ logins and, on Windows, two settings that break hooks:
 - `core.autocrlf=true` (the Git for Windows default) is harmless inside
   standard repos, because `.gitattributes` forces LF line endings.
 
+**Machine setup.** Run `scripts/setup-machine.sh` once per machine (and
+again after updating repo-standard). It installs two guards:
+
+- the pre-push guard (`scripts/git-hooks/pre-push`) as a git template
+  hook, so every clone refuses pushes that would update or delete `main`.
+  Existing clones get it by running `git init` inside the clone;
+- the identity hook (`scripts/claude-hooks/git-identity-switch.sh`) as a
+  Claude Code PreToolUse hook. Before a git command, it sets the clone's
+  local commit identity and credential helper for the account that should
+  act there, and blocks commits and pushes for an account with no
+  `OWNER.env`. With `--act-as OWNER`, that one account acts in every
+  repository, for example as a collaborator on another account's repos.
+
 **The release App.** One private GitHub App per account, installed on all of
 that account's repositories. Repository permissions: Contents read and
 write, Pull requests read and write, Issues read and write (labels), and
@@ -149,7 +162,7 @@ release-please-config.json  .release-please-manifest.json
   pull_request_template.md
   CODEOWNERS              routing only, never a required review
   dependabot.yml
-  workflows/              ci.yml, pr-title.yml, release-please.yml
+  workflows/              ci.yml, pr-title.yml, release-please.yml, main-guard.yml
                           links.yml (weekly external link check)
                           public repos add codeql.yml, dependency-review.yml, scorecard.yml
 docs/                     Diataxis layout and rules in section 15
@@ -264,7 +277,14 @@ Private repos owned by a personal account on the Free plan have no rulesets
 and no branch protection; GitHub Pro ($4 a month) adds both for private
 repos.
 There the same gate holds through CI, local hooks and the process rules, and
-Claude never pushes directly to `main`.
+Claude never pushes directly to `main`. Three layers stand in for the
+ruleset, and none of them is a security boundary:
+
+| Layer | Stops | Gap |
+|---|---|---|
+| `no-commit-to-branch` hook | commits made on a local `main` | skipped with `--no-verify` |
+| pre-push guard (machine setup) | any push that updates or deletes `main`, including commits the remote already has | skipped with `--no-verify`; only on machines that ran setup |
+| `main-guard.yml` workflow | nothing; it detects after the push | fails the run and opens an issue for each push to `main` without a merged PR, and for force pushes |
 
 ### Bot pull requests
 

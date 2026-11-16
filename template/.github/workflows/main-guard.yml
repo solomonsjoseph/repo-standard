@@ -1,0 +1,79 @@
+# Reports commits that reached main without a merged pull request, and
+# force pushes to main. Private repos on the Free plan have no rulesets, so
+# nothing on GitHub can block such a push; this run fails and opens an issue
+# instead. On public repos the main ruleset already blocks them, so this only
+# ever passes there.
+name: main-guard
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: main-guard-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  main-guard:
+    name: main-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: Check that every pushed commit came from a merged pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          FORCED: ${{ github.event.forced }}
+          PUSHER: ${{ github.event.pusher.name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          zero=0000000000000000000000000000000000000000
+          if [ "$BEFORE" = "$zero" ]; then
+            echo "main was created by this push (bootstrap commit); nothing to compare"
+            exit 0
+          fi
+          problems=""
+          if [ "$FORCED" = true ]; then
+            problems="main was force-pushed (previous tip $BEFORE)."
+          fi
+          # Commits this push added to main, oldest first.
+          shas="$(gh api "repos/$REPO/compare/$BEFORE...$AFTER" --jq '.commits[].sha' || true)"
+          for sha in $shas; do
+            # A squash or merge commit is associated with its pull request.
+            # The association can lag the push by a few seconds; retry once.
+            merged=""
+            for attempt in 1 2; do
+              merged="$(gh api "repos/$REPO/commits/$sha/pulls" \
+                --jq '[.[] | select(.merged_at != null and .base.ref == "main")] | length')"
+              [ "$merged" != 0 ] && break
+              [ "$attempt" = 1 ] && sleep 20
+            done
+            if [ "$merged" = 0 ]; then
+              problems="$problems
+          - $sha has no merged pull request into main."
+            fi
+          done
+          if [ -z "$problems" ]; then
+            echo "every commit on main came from a merged pull request"
+            exit 0
+          fi
+          body="A push to main bypassed the pull request flow (STANDARD.md section 7).
+
+          Pushed by: $PUSHER
+          Range: $BEFORE...$AFTER
+          Run: $RUN_URL
+          $problems
+
+          Review the commits. If they should not be on main, revert them through a pull request."
+          gh issue create --repo "$REPO" --title "main-guard: change reached main without a pull request" --body "$body"
+          echo "::error::commits reached main without a merged pull request; issue opened"
+          exit 1

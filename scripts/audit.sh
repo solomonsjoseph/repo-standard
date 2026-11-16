@@ -26,7 +26,7 @@ for f in README.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md AGENTS.md \
   .release-please-manifest.json .github/pull_request_template.md .github/dependabot.yml \
   .github/CODEOWNERS .github/ISSUE_TEMPLATE/config.yml \
   .github/workflows/ci.yml .github/workflows/pr-title.yml .github/workflows/release-please.yml \
-  .github/workflows/links.yml .vale.ini .lychee.toml scripts/check_docs.py docs/index.md docs/dev/index.md; do
+  .github/workflows/links.yml .github/workflows/main-guard.yml .vale.ini .lychee.toml scripts/check_docs.py docs/index.md docs/dev/index.md; do
   xchk "$f" "$f" "[ -f '$dir/$f' ]"
 done
 if [ "$no_license" = 1 ]; then nap "LICENSE (repo chose no license)"; else xchk LICENSE "LICENSE" "[ -f '$dir/LICENSE' ]"; fi
@@ -50,6 +50,10 @@ name = re.compile(os.environ["RE"], re.I); exempt = re.compile(os.environ["EX"],
 print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exempt.search(p)))' || true)"
 chk "no committed plan or notes files${stray:+ (found: $stray)}" "[ -z \"\$stray\" ]"
 chk "commit-msg hook installed locally" "[ -f '$dir/.git/hooks/commit-msg' ]"
+# The pre-push guard comes from the machine's git template (setup-machine.sh);
+# pre-commit keeps an existing hook as pre-push.legacy when it installs its own.
+chk "pre-push guard installed locally (scripts/setup-machine.sh, then git init)" \
+  "grep -qs 'refusing to push to main' '$dir/.git/hooks/pre-push' '$dir/.git/hooks/pre-push.legacy'"
 
 echo "== settings ($full, $( [ "$private" = true ] && echo private || echo public ))"
 chk "squash merge only" "[ \"$(j .allow_squash_merge)/$(j .allow_merge_commit)/$(j .allow_rebase_merge)\" = true/false/false ]"

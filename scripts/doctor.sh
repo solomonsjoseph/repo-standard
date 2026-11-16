@@ -84,6 +84,25 @@ for o in ${owners[@]+"${owners[@]}"}; do
   else fail "no gh login for $o: gh auth login (as $o)"; fi
 done
 
+echo "== machine setup (scripts/setup-machine.sh)"
+tpl_dir="$(git config --global --get init.templateDir || true)"
+if [ -n "$tpl_dir" ] && cmp -s "$STANDARD_ROOT/scripts/git-hooks/pre-push" "$tpl_dir/hooks/pre-push"; then
+  pass "pre-push guard in the git template ($tpl_dir)"
+else
+  warn "pre-push guard not in the git template: run scripts/setup-machine.sh"
+fi
+claude_settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+if grep -qs "git-identity-switch.sh" "$claude_settings"; then
+  pass "Claude Code identity hook registered"
+else
+  warn "Claude Code identity hook not registered: run scripts/setup-machine.sh"
+fi
+if [ -f "$CONFIG_DIR/act-as" ]; then
+  acting="$(tr -d '[:space:]' < "$CONFIG_DIR/act-as")"
+  if [ -f "$CONFIG_DIR/$acting.env" ]; then pass "every repository acts as $acting (act-as)"
+  else fail "act-as names $acting, but $CONFIG_DIR/$acting.env does not exist"; fi
+fi
+
 if [ "$windows" = 1 ]; then
   echo "== windows"
   # Repos carry '* text=auto eol=lf', which wins over core.autocrlf, but a
