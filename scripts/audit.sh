@@ -74,16 +74,38 @@ else
   [ -d "$dir" ] || die "no such folder: $dir"
   grep -qs 'No license: all rights reserved' "$dir/README.md" && no_license=1
   echo "== files ($dir)"
-  n=0
-  for f in README.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md SUPPORT.md AGENTS.md \
-    .editorconfig .gitignore .pre-commit-config.yaml release-please-config.json \
-    .release-please-manifest.json .github/pull_request_template.md .github/dependabot.yml \
-    .github/CODEOWNERS .github/ISSUE_TEMPLATE/config.yml .github/workflows/ci.yml \
-    .github/workflows/pr-title.yml .github/workflows/release-please.yml \
-    .github/workflows/links.yml .github/workflows/main-guard.yml .claude/settings.json \
-    .vale.ini .lychee.toml scripts/check_docs.py docs/index.md docs/dev/index.md; do
-    n=$((n + 1)); xchk "$(printf 'RS-FILE-%02d' "$n")" "$f" "$f" "[ -f '$dir/$f' ]"
-  done
+  # Each ID is fixed to its file. Append new files with the next free number;
+  # never renumber or reuse an ID (docs/reference/audit-rules.md).
+  while read -r id f; do
+    xchk "RS-FILE-$id" "$f" "$f" "[ -f '$dir/$f' ]"
+  done <<'FILES'
+01 README.md
+02 CONTRIBUTING.md
+03 SECURITY.md
+04 CODE_OF_CONDUCT.md
+05 SUPPORT.md
+06 AGENTS.md
+07 .editorconfig
+08 .gitignore
+09 .pre-commit-config.yaml
+10 release-please-config.json
+11 .release-please-manifest.json
+12 .github/pull_request_template.md
+13 .github/dependabot.yml
+14 .github/CODEOWNERS
+15 .github/ISSUE_TEMPLATE/config.yml
+16 .github/workflows/ci.yml
+17 .github/workflows/pr-title.yml
+18 .github/workflows/release-please.yml
+19 .github/workflows/links.yml
+20 .github/workflows/main-guard.yml
+21 .claude/settings.json
+22 .vale.ini
+23 .lychee.toml
+24 scripts/check_docs.py
+25 docs/index.md
+26 docs/dev/index.md
+FILES
   if [ "$no_license" = 1 ]; then nap RS-LIC-01 "LICENSE (repo chose no license)"
   else xchk RS-LIC-01 LICENSE "LICENSE" "[ -f '$dir/LICENSE' ]"; fi
 
@@ -103,10 +125,9 @@ print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exe
   echo "== hooks"
   unfrozen="$(grep -E '^\s+rev: ' "$dir/.pre-commit-config.yaml" 2>/dev/null | grep -vE 'rev: [0-9a-f]{40}' || true)"
   chk RS-HOOK-01 "pre-commit hook revs frozen to SHAs${unfrozen:+ (not frozen: $(echo "$unfrozen" | wc -l | tr -d ' ') revs)}" "[ -z \"\$unfrozen\" ]"
-  n=1
-  for h in vale lychee check-docs no-scratch-files no-ai-attribution; do
-    n=$((n + 1))
-    xchk "RS-HOOK-0$n" "hook:$h" "hook configured: $h" "grep -qs 'id: $h\$' '$dir/.pre-commit-config.yaml'"
+  for spec in 02:vale 03:lychee 04:check-docs 05:no-scratch-files 06:no-ai-attribution; do
+    h="${spec#*:}"
+    xchk "RS-HOOK-${spec%%:*}" "hook:$h" "hook configured: $h" "grep -qs 'id: $h\$' '$dir/.pre-commit-config.yaml'"
   done
   xchk RS-HOOK-07 .vale/ "Vale Google style vendored" "[ -f '$dir/.vale/styles/Google/Headings.yml' ]"
   chk RS-HOOK-08 "commit-msg hook installed locally (pre-commit install)" "[ -f '$dir/.git/hooks/commit-msg' ]"
