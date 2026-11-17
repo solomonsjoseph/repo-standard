@@ -250,10 +250,10 @@ delink_standard() {
 }
 
 # Per-repo exclude list: DIR/.github/repo-standard-exclude names standard
-# files, folders (ending in /), hooks (hook:<id>) and .gitignore patterns
-# (gitignore:<pattern>) and audit rules (RS-AREA-NN, see
-# docs/reference/audit-rules.md) the repo has chosen not to use. One entry per line;
-# text after # is a comment (the reason).
+# files, folders (ending in /), hooks (hook:<id>), .gitignore patterns
+# (gitignore:<pattern>), Claude Code deny rules (claude-deny:<rule>) and audit
+# rules (RS-AREA-NN, see docs/reference/audit-rules.md) the repo has chosen
+# not to use. One entry per line; text after # is a comment (the reason).
 EXCLUDE_FILE=.github/repo-standard-exclude
 # exclude_entries FILE|-: the entries of an exclude list (- reads stdin), one
 # per line, without comments or blanks. Read the list once and match with

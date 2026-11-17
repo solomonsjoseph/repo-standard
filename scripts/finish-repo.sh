@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: finish-repo.sh OWNER/REPO OVERLAY public|private --license SPDX|none
-#          [--addon api-http|api-events]... [--desc TEXT]
+#          [--addon api-http|api-events|sensitive-data]... [--desc TEXT]
 # Finishes a repository that was created from OWNER/repo-template in the
 # GitHub UI (the template repo is a reference copy: it cannot pick an overlay,
 # fill placeholders, choose a license or apply settings). It:

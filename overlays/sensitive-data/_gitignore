@@ -1,0 +1,23 @@
+# sensitive-data add-on: data and analysis caches stay out of git. The root
+# data/ folder is reserved for real data; nested data/ folders (src/pkg/data/)
+# are not hidden. R package datasets (data/*.rda) are not shipped from these
+# repositories; synthetic examples go in tests/fixtures/synthetic/.
+/data/
+/raw/
+/_targets/
+/_freeze/
+.RData
+.Rhistory
+*.sas7bdat
+*.xpt
+*.dta
+*.sav
+*.rds
+*.rda
+*.RData
+*.parquet
+*.feather
+*.xlsx
+*.xls
+# Synthetic test data is committed (docs/dev/data-handling.md).
+!/tests/fixtures/synthetic/**

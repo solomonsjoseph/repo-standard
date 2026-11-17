@@ -3,7 +3,7 @@
 #          [--codeql-langs "L1 L2"]
 #
 # Applies a language overlay (python, ts, go, r, swift, docs) or an add-on
-# overlay (api-http, api-events) to a repo, plus the public overlay when
+# overlay (api-http, api-events, sensitive-data) to a repo, plus the public overlay when
 # --public is set. Placeholders (__OWNER__, __REPO_NAME__, ...) are filled in.
 #
 # Default mode (new repos): TARGET_DIR already holds template/; overlay files
@@ -21,6 +21,7 @@
 #   _gitignore      lines added to .gitignore
 #   _release-type   sets release-type in release-please-config.json
 #   _codeql-langs   CodeQL languages for the public overlay
+#   _claude-deny    rules added to permissions.deny in .claude/settings.json
 #
 # --codeql-langs "L1 L2" sets the CodeQL languages explicitly (for example
 # "actions python javascript-typescript"). Without it, a retrofit adds every
@@ -60,7 +61,7 @@ case "$overlay" in swift|r) pkg="$(echo "$name" | perl -pe 's/(^|[-_])(\w)/\U$2/
 
 fragments=(--exclude /_ci.yml --exclude /_precommit.yaml --exclude /_dependabot.yml
   --exclude /_gitignore --exclude /_release-type --exclude /_codeql-langs
-  --exclude /_agents.md)
+  --exclude /_agents.md --exclude /_claude-deny)
 merge_dir="$target/.scratch/repo-standard-merge/$overlay"
 stage="$(mktemp -d)"; trap 'rm -rf "$stage"' EXIT
 
@@ -119,12 +120,25 @@ fi
 put_fragment() {
   local file="$1" marker="$2" frag="$3" mode="$4"
   [ -f "$frag" ] && [ -s "$frag" ] || return 0
-  # Re-runs: a marker with content after it was merged before (by this script
-  # or by hand), so appending again would duplicate it.
-  if [ "$retrofit" = 1 ] && [ "$mode" = append ] && [ -f "$file" ] &&
-      awk -v m="$marker" 'index($0, m) { seen = 1; next } seen && NF { found = 1 } END { exit !found }' "$file"; then
-    echo "note: ${file#"$target"/} already has the overlay's section; not appended again"
-    return 0
+  # Re-runs: never append a fragment the file already holds, either whole or
+  # as its landmarks (every hook id and Markdown heading it has), so an older
+  # or reworded copy of the section is not added twice. For a language
+  # overlay, content after the marker also means a merge happened before (by
+  # this script or by hand). Add-ons append after the language overlay, so
+  # for them only the fragment itself counts.
+  if [ "$mode" = append ] && [ -f "$file" ]; then
+    if perl -0777 -e 'local $/; open my $f, "<", $ARGV[0] or exit 1; my $frag = <$f>;
+        open my $t, "<", $ARGV[1] or exit 1; my $text = <$t>;
+        exit 0 if index($text, $frag) >= 0;
+        my @marks = $frag =~ /^(\s*- id: \S+|#{1,6} .+?)\s*$/mg;
+        exit 1 unless @marks;
+        for my $m (@marks) { exit 1 unless $text =~ /^\Q$m\E\s*$/m }
+        exit 0' "$frag" "$file" ||
+       { [ "$retrofit" = 1 ] && [ "$kind" = language ] &&
+         awk -v m="$marker" 'index($0, m) { seen = 1; next } seen && NF { found = 1 } END { exit !found }' "$file"; }; then
+      echo "note: ${file#"$target"/} already has the $overlay section; not appended again"
+      return 0
+    fi
   fi
   if [ "$retrofit" = 0 ] || { [ -f "$file" ] && grep -q "$marker" "$file"; }; then
     if [ "$mode" = replace ]; then cp "$frag" "$file"; else cat "$frag" >> "$file"; fi
@@ -167,6 +181,33 @@ put_fragment "$target/.github/workflows/ci.yml" "Language overlays replace this 
 put_fragment "$target/.pre-commit-config.yaml" "# LANGUAGE HOOKS (added by overlay)" "$src/_precommit.yaml" append
 put_fragment "$target/.github/dependabot.yml" "# LANGUAGE ECOSYSTEMS (added by overlay)" "$src/_dependabot.yml" append
 put_fragment "$target/AGENTS.md" "<!-- LANGUAGE COMMANDS (added by overlay) -->" "$src/_agents.md" append
+# _claude-deny: one permission rule per line, inserted into the deny list of
+# .claude/settings.json unless already there or on the repo's exclude list
+# (claude-deny:<rule>). A settings file without the standard's "deny": [
+# line is parked for a hand merge.
+if [ -s "$src/_claude-deny" ]; then
+  settings="$target/.claude/settings.json"
+  excl="$(exclude_entries "$target/$EXCLUDE_FILE")"
+  rules="$(while IFS= read -r r || [ -n "$r" ]; do
+    [ -n "$r" ] && ! in_excludes "claude-deny:$r" "$excl" && printf '%s\n' "$r"; done < "$src/_claude-deny" || true)"
+  if [ -z "$rules" ]; then :
+  elif [ -f "$settings" ] && grep -q '"deny": \[$' "$settings"; then
+    RULES="$rules" perl -0pi -e '
+      my @add = grep { length && index($_, chr(34)) < 0 } split /\r?\n/, $ENV{RULES};
+      my $text = $_;
+      @add = grep { index($text, chr(34) . $_ . chr(34)) < 0 } @add;
+      if (@add) {
+        my $ins = join("", map { "      " . chr(34) . $_ . chr(34) . ",\n" } @add);
+        # An empty list takes no comma after its last rule.
+        $ins =~ s/,\n\z/\n/ if /"deny": \[\r?\n\s*\]/;
+        s/("deny": \[\r?\n)/$1$ins/;
+      }' "$settings"
+  else
+    mkdir -p "$merge_dir"
+    cp "$src/_claude-deny" "$merge_dir/claude-deny"
+    echo "note: add the rules in $merge_dir/claude-deny to permissions.deny in .claude/settings.json by hand"
+  fi
+fi
 if [ -s "$src/_gitignore" ]; then
   if [ "$retrofit" = 1 ]; then
     merge_gitignore "$src/_gitignore" "$target/.gitignore" "$target"

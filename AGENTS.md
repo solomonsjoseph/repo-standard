@@ -64,7 +64,8 @@ maintainer and record the answers:
 
 - visibility, license, and any required file headers;
 - sensitive data rules (for example health data): no real data in fixtures,
-  logs, issues, or prompts;
+  logs, issues, or prompts, and the `sensitive-data` add-on for health or
+  other personal data;
 - contribution rules from a client or collaborator;
 - whether the repository publishes a docs site, and from which trigger;
 - whether the maintainer has admin rights (without them, change files and
