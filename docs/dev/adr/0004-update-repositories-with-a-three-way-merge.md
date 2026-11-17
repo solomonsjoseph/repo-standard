@@ -48,7 +48,9 @@ template grows conditional files that shell scripts handle badly.
   versions with `scripts/apply-overlay.sh` and the copy helper (1.3.0 and
   later) can be the base.
 - Placeholders are filled with the same values on both sides, so a
-  repository's own name or description never shows up as a change.
+  repository's own name or description never shows up as a change. The
+  description comes from GitHub (or `--desc`), so files an update adds get
+  the real one.
 - Renovate cannot open update PRs the way its `copier` manager does. An
   agent or the owner runs the script per repository; the audit's RS-REL-03
   rule shows which repositories are behind.

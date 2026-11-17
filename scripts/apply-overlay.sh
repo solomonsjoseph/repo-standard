@@ -105,26 +105,6 @@ if [ "$public" = 1 ] && [ -f "$src/_codeql-langs" ]; then
 fi
 render_placeholders "$stage" "$owner" "$name" "$pkg" "$desc"
 
-# merge_gitignore FROM INTO: append FROM's ignore patterns that INTO lacks,
-# under one header. Comment and blank lines are not copied, so no empty
-# section headers pile up, and a missing final newline in INTO is fixed first
-# so the first new pattern does not join the last existing line.
-merge_gitignore() {
-  local from="$1" into="$2" line added=0
-  touch "$into"
-  while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in ''|'#'*) continue ;; esac
-    grep -qxF -- "$line" "$into" && continue
-    excluded "$target" "gitignore:$line" && continue
-    if [ "$added" = 0 ]; then
-      [ -s "$into" ] && [ -n "$(tail -c 1 "$into")" ] && echo >> "$into"
-      grep -qxF "# Added by the repo standard" "$into" ||
-        { [ -s "$into" ] && echo >> "$into"; echo "# Added by the repo standard" >> "$into"; }
-      added=1
-    fi
-    echo "$line" >> "$into"
-  done < "$from"
-}
 # Files on the repo's exclude list (.github/repo-standard-exclude) are never
 # copied or parked, so a re-run does not bring back what the repo dropped.
 if [ -f "$target/$EXCLUDE_FILE" ]; then
@@ -167,7 +147,7 @@ if [ "$retrofit" = 1 ]; then
       [ -f "$target/$rel" ] || continue
       cmp -s "$stage/$rel" "$target/$rel" && continue
       if [ "$rel" = .gitignore ]; then
-        merge_gitignore "$stage/.gitignore" "$target/.gitignore"
+        merge_gitignore "$stage/.gitignore" "$target/.gitignore" "$target"
         continue
       fi
       mkdir -p "$target/.scratch/repo-standard-merge/standard/$(dirname "$rel")"
@@ -189,7 +169,7 @@ put_fragment "$target/.github/dependabot.yml" "# LANGUAGE ECOSYSTEMS (added by o
 put_fragment "$target/AGENTS.md" "<!-- LANGUAGE COMMANDS (added by overlay) -->" "$src/_agents.md" append
 if [ -s "$src/_gitignore" ]; then
   if [ "$retrofit" = 1 ]; then
-    merge_gitignore "$src/_gitignore" "$target/.gitignore"
+    merge_gitignore "$src/_gitignore" "$target/.gitignore" "$target"
   else
     # New repos: keep the overlay's section comments for readability.
     while IFS= read -r line || [ -n "$line" ]; do
@@ -229,8 +209,7 @@ if [ "$retrofit" = 1 ]; then
 
   # dependency-review fails on the adoption PR unless the dependency graph is
   # on, so turn on Dependabot alerts now rather than after the merge.
-  remote="$(git -C "$target" remote get-url origin 2>/dev/null || true)"
-  slug="$(echo "$remote" | sed -nE 's#^(https://github\.com/|git@github\.com:)([^/]+/[^/]+)$#\2#p' | sed 's/\.git$//')"
+  slug="$(origin_slug "$target")"
   if [ -n "$slug" ]; then
     # Subshell: gh_as exits through die when the owner has no gh login.
     if (gh_as "$owner" api -X PUT "repos/$slug/vulnerability-alerts" --silent) 2>/dev/null; then
@@ -258,7 +237,7 @@ st_vis="$(stamp_field "$stamp" visibility)"
 # the current version, because a retrofit ends with the hand merge of every
 # parked file (STANDARD.md section 13).
 if [ -n "$st_version" ] && [ "$st_version" != "$std_version" ]; then
-  echo "note: $stamp keeps standard-version $st_version; the version moves to $std_version only when the files are updated"
+  echo "note: $stamp keeps standard-version $st_version; the version moves to $std_version when scripts/update-repo.sh updates the files"
   std_version="$st_version"
 fi
 if [ "$kind" = language ]; then

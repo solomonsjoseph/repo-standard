@@ -96,6 +96,14 @@ check "excludes: a folder entry covers paths inside it" "excluded '$work/ex' doc
 check "excludes: other entries do not match" "! excluded '$work/ex' docs/index.md && ! excluded '$work/ex' hook:lychee"
 check "excludes: no list means nothing is excluded" "! excluded '$work/plain' RS-DEP-02"
 
+printf 'gitignore:*.log\n' >> "$work/ex/$EXCLUDE_FILE"
+printf 'mine/' > "$work/ex/.gitignore"
+printf '# section\n.venv/\n*.log\nmine/\n\n.env\n' > "$work/gi-from"
+merge_gitignore "$work/gi-from" "$work/ex/.gitignore" "$work/ex"
+check "merge_gitignore: adds missing patterns under one header" "[ \"\$(cat '$work/ex/.gitignore')\" = \"\$(printf 'mine/\n\n# Added by the repo standard\n.venv/\n.env')\" ]"
+merge_gitignore "$work/gi-from" "$work/ex/.gitignore" "$work/ex"
+check "merge_gitignore: a re-run adds nothing" "[ \"\$(grep -c . '$work/ex/.gitignore')\" = 4 ]"
+
 if command -v rsync >/dev/null; then
   # Fresh copies: the symlink test above added to the source after
   # $work/plain was made.

@@ -275,3 +275,32 @@ in_excludes() {
 }
 # excluded DIR ENTRY: true when ENTRY is on DIR's exclude list.
 excluded() { in_excludes "$2" "$(exclude_entries "$1/$EXCLUDE_FILE")"; }
+
+# merge_gitignore FROM INTO REPO: append FROM's ignore patterns that INTO
+# lacks and REPO's exclude list allows (gitignore:<pattern>), under one
+# header. Comment and blank lines are not copied, so no empty section headers
+# pile up, and a missing final newline in INTO is fixed first so the first
+# new pattern does not join the last existing line.
+merge_gitignore() {
+  local from="$1" into="$2" excl line added=0
+  excl="$(exclude_entries "$3/$EXCLUDE_FILE")"
+  touch "$into"
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|'#'*) continue ;; esac
+    grep -qxF -- "$line" "$into" && continue
+    in_excludes "gitignore:$line" "$excl" && continue
+    if [ "$added" = 0 ]; then
+      [ -s "$into" ] && [ -n "$(tail -c 1 "$into")" ] && echo >> "$into"
+      grep -qxF "# Added by the repo standard" "$into" ||
+        { [ -s "$into" ] && echo >> "$into"; echo "# Added by the repo standard" >> "$into"; }
+      added=1
+    fi
+    echo "$line" >> "$into"
+  done < "$from"
+}
+
+# origin_slug DIR: OWNER/NAME of DIR's GitHub origin remote, or nothing.
+origin_slug() {
+  git -C "$1" remote get-url origin 2>/dev/null |
+    sed -nE 's#^(https://github\.com/|git@github\.com:)([^/]+/[^/]+)$#\2#p' | sed 's/\.git$//' || true
+}
