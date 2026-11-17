@@ -347,6 +347,13 @@ before merging any of them: merging the release PR is a release.
   for). Security updates are never delayed. Commit prefixes: `fix(deps)`
   for production dependencies, `chore(deps-dev)` for development
   dependencies.
+- The package managers apply the same 7-day cooldown when they resolve:
+  `exclude-newer = "1 week"` under `[tool.uv]` (python overlay) and
+  `minimumReleaseAge: 10080` in `pnpm-workspace.yaml` (ts overlay), where
+  `allowBuilds` also lists every dependency allowed to run install
+  scripts. A security fix younger than a week needs a per-package
+  exception (`exclude-newer-package` or `minimumReleaseAgeExclude`) in the
+  same pull request.
 - Secret scanning with push protection (public repos; gitleaks covers private
   repos locally and in CI).
 - Public repos: CodeQL (advanced setup), dependency review on PRs, and a
@@ -407,7 +414,7 @@ by its linters and formatters, never by review comments alone.
 
 | Overlay | Layout | Tools | Style guide | release-type |
 |---|---|---|---|---|
-| python | `src/<pkg>/`, `tests/`, `pyproject.toml` | uv, ruff (lint, format), mypy, pytest, coverage | Google Python style guide | python |
+| python | `src/<pkg>/`, `tests/`, `pyproject.toml` | uv, ruff (lint including the bandit security rules, format), mypy, pytest, coverage | Google Python style guide | python |
 | ts | `src/`, `tests/` (pnpm workspace monorepos: planned for v2) | pnpm, eslint, prettier, tsc, vitest | Google TypeScript style guide | node |
 | go | `cmd/<app>/`, `internal/`, `pkg/` only for public API | gofmt, go vet, golangci-lint, go test -race | Effective Go, Google Go style guide | go |
 | r | package: `R/`, `tests/testthat/`, `DESCRIPTION` | lintr, styler, testthat (renv not yet in the overlay) | tidyverse style guide | r |
