@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: weekly
     cooldown:
-      default-days: 5
+      default-days: 7
     commit-message:
       prefix: chore
       include: scope
@@ -18,7 +18,7 @@ updates:
     schedule:
       interval: weekly
     cooldown:
-      default-days: 5
+      default-days: 7
     commit-message:
       prefix: chore
       include: scope

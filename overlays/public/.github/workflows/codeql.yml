@@ -19,6 +19,8 @@ jobs:
   analyze:
     name: codeql (${{ matrix.language }})
     runs-on: ${{ matrix.language == 'swift' && 'macos-latest' || 'ubuntu-latest' }}
+    # Swift builds on macOS and takes longer.
+    timeout-minutes: ${{ matrix.language == 'swift' && 60 || 30 }}
     permissions:
       contents: read
       security-events: write
