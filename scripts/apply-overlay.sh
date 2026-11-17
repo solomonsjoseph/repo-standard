@@ -3,8 +3,8 @@
 #          [--codeql-langs "L1 L2"]
 #
 # Applies a language overlay (python, ts, go, r, swift, docs) or an add-on
-# overlay (api-http, api-events, sensitive-data) to a repo, plus the public overlay when
-# --public is set. Placeholders (__OWNER__, __REPO_NAME__, ...) are filled in.
+# overlay (api-http, api-events, sensitive-data, citation) to a repo, plus the
+# public overlay when --public is set. Placeholders (__OWNER__, __REPO_NAME__, ...) are filled in.
 #
 # Default mode (new repos): TARGET_DIR already holds template/; overlay files
 # are copied over it and the fragments below are merged in.
@@ -105,6 +105,15 @@ if [ "$public" = 1 ] && [ -f "$src/_codeql-langs" ]; then
   LANGS="$langs" perl -pi -e 's/__CODEQL_LANGS__/$ENV{LANGS}/' "$stage/.github/workflows/codeql.yml"
 fi
 render_placeholders "$stage" "$owner" "$name" "$pkg" "$desc"
+# citation add-on: the first author is the owner (OWNER_NAME in the private
+# per-owner config); the last word is the family name. Without the config,
+# the login stands in until the maintainer edits the file.
+if [ -f "$stage/CITATION.cff" ]; then
+  author="$( (owner_name "$owner") 2>/dev/null || true)"; author="${author:-$owner}"
+  given="${author% *}"; family="${author##* }"; [ "$given" != "$author" ] || given=""
+  GIVEN="$given" FAMILY="$family" perl -pi -e 's/__AUTHOR_GIVEN__/$ENV{GIVEN}/; s/__AUTHOR_FAMILY__/$ENV{FAMILY}/' "$stage/CITATION.cff"
+  [ -n "$given" ] || perl -0pi -e 's/- given-names: ""\n\s*family-names:/- family-names:/' "$stage/CITATION.cff"
+fi
 
 # Files on the repo's exclude list (.github/repo-standard-exclude) are never
 # copied or parked, so a re-run does not bring back what the repo dropped.

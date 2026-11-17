@@ -1,0 +1,12 @@
+# How to cite this software (Citation File Format 1.2.0). GitHub reads this
+# file for its "Cite this repository" button, and Zenodo for release DOIs.
+# There is no version field: GitHub and Zenodo take it from each release.
+cff-version: 1.2.0
+message: If you use this software, please cite it using the metadata from this file.
+type: software
+title: "__REPO_NAME__"
+abstract: "__DESCRIPTION__"
+authors:
+  - given-names: "__AUTHOR_GIVEN__"
+    family-names: "__AUTHOR_FAMILY__"
+repository-code: "https://github.com/__OWNER__/__REPO_NAME__"
