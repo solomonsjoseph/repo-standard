@@ -48,8 +48,9 @@ every rule an agent needs is repeated here, so the link is background.
 - Source code lives in the language layout's source folder, never at the
   repository root.
 - Source and config files are English and plain ASCII only. Build any
-  non-ASCII test value from escapes. Docs, translations and fixtures may
-  hold Unicode text, but never bidirectional or zero-width characters.
+  non-ASCII test value from escapes. Docs, translations and data files in
+  locale, fixture and testdata folders may hold Unicode text, but never
+  bidirectional overrides or zero-width spaces.
 - No secrets, credentials, real personal data, or large binaries in the
   tree. Do not read `.env` files or private keys.
 - Plans, research, session notes and drafts go in `.scratch/`, which is

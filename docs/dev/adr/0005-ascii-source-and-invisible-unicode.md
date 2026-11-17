@@ -26,14 +26,22 @@ reviewer's tooling reads, and they can hide in Markdown just as well.
 
 ## Decision
 
-- `ascii-only` keeps checking code and config, and skips prose (`.md`,
-  `.mdx`, `.txt`, `.rst`), translations (`locales/`, `i18n/`,
-  `translations/`, `.po`, `.pot`, `.xlf`), tabular test data (`.csv`,
-  `.tsv`) and `fixtures/` folders.
+- `ascii-only` keeps checking code and config, including `.txt` files such
+  as `requirements.txt`. It skips prose (`.md`, `.mdx`, `.rst`),
+  translations (`.po`, `.pot`, `.xlf`, `.xliff`), tabular data (`.csv`,
+  `.tsv`), and data files (`.json`, `.yaml`, `.yml`, `.toml`, `.txt`,
+  `.xml`, `.properties`, `.strings`, `.ftl`, `.arb`) inside `locales/`,
+  `i18n/`, `translations/`, `fixtures/` and `testdata/` folders. Code in
+  those folders is still checked.
 - A new `no-invisible-unicode` hook rejects, in every text file, the
-  bidirectional controls `U+202A` to `U+202E` and `U+2066` to `U+2069`, the
-  zero-width and direction marks `U+200B` to `U+200F` and `U+2060` to
-  `U+2064`, and the byte order mark `U+FEFF`.
+  bidirectional overrides and isolates `U+202A` to `U+202E` and `U+2066` to
+  `U+2069`, the zero-width space `U+200B`, and the invisible operators
+  `U+2060` to `U+2064`. Joiners (`U+200C`, `U+200D`), direction marks
+  (`U+200E`, `U+200F`, `U+061C`) and the byte order mark `U+FEFF` are
+  allowed: Persian, Indic and right-to-left text and spreadsheet exports
+  need them, and they cannot reorder what a reader sees.
+- `scripts/test-guards.sh` tests both patterns, and `check-drift.sh` keeps
+  the copies in the root and template configs the same.
 
 ## Consequences
 

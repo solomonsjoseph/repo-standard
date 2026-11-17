@@ -22,7 +22,9 @@ The short version:
 7. Releases are automatic: release-please opens a release PR from the commits
    on `main`, and merging it publishes the version.
 
-Source files are English and plain ASCII only.
+Source and config files are English and plain ASCII only; docs,
+translations and test data may hold Unicode text, but no file may hold
+hidden bidirectional or zero-width characters.
 
 ## AI tools
 
