@@ -91,6 +91,7 @@ The audit exits with status 1 when any rule fails.
 | RS-HOOK-07 | Vale Google style vendored in `.vale/` | |
 | RS-HOOK-08 | `commit-msg` hook installed in the local clone | |
 | RS-HOOK-09 | Pre-push guard installed in the local clone | OSPS-AC-03.01 (private repositories) |
+| RS-HOOK-10 | Hook configured: `no-invisible-unicode` | |
 | RS-HOOK-11 | Hook configured: `zizmor` | OSPS-BR-01.01 |
 
 ## Workflows

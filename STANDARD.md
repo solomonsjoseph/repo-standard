@@ -189,8 +189,12 @@ Rules:
 - Generated files are not committed unless the toolchain requires it (lock
   files are committed).
 - No secrets, real personal data, or large binaries in the tree.
-- Source files are English and plain ASCII only. Build any non-ASCII test
-  value from escapes.
+- Source and config files are English and plain ASCII only. Build any
+  non-ASCII test value from escapes. Prose (Markdown, text), translations
+  (`locales/`, `.po`) and test fixtures may hold Unicode text.
+- No file may contain bidirectional control or zero-width characters,
+  which make code read differently from how it runs (the
+  `no-invisible-unicode` hook; [ADR 0005](docs/dev/adr/0005-ascii-source-and-invisible-unicode.md)).
 
 ## 4. Branches
 

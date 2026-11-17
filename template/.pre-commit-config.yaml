@@ -67,12 +67,21 @@ repos:
         language: pygrep
         entry: '(?i)^\s*co-authored-by:[^<]*<[^>]*(@anthropic\.com|@openai\.com|@cursor\.com|\+copilot@users\.noreply\.github\.com|devin-ai-integration|gemini-code-assist|chatgpt)|^[^A-Za-z0-9]*generated (with|by) \[?(claude|anthropic|copilot|openai|chatgpt|codex|gemini|cursor|devin)[^],.;:!?]*\]?(\([^)]*\))?\s*$'
         stages: [commit-msg]
+      # Code and config are ASCII. Prose, translations and test data may use
+      # Unicode text, but no file may hide characters (next hook).
       - id: ascii-only
         name: source files are plain ASCII
         language: pygrep
         entry: "[^\\x00-\\x7F]"
         types: [text]
-        exclude: ^CHANGELOG\.md$
+        exclude: (?i)(^CHANGELOG\.md$|\.(md|mdx|txt|rst|po|pot|xlf|xliff|csv|tsv)$|(^|/)(locales?|i18n|translations|fixtures)/)
+      # Bidirectional controls and zero-width characters make code read
+      # differently from how it runs (CVE-2021-42574), in every file.
+      - id: no-invisible-unicode
+        name: no bidirectional or invisible Unicode characters
+        language: pygrep
+        entry: "\\xe2\\x80[\\x8b-\\x8f\\xaa-\\xae]|\\xe2\\x81[\\xa0-\\xa4\\xa6-\\xa9]|\\xef\\xbb\\xbf"
+        types: [text]
   # Documentation: prose style, links, page rules (see STANDARD.md section 15)
   - repo: https://github.com/errata-ai/vale
     rev: e2d4374b1c66c8a1dd6d912bebc135040d8833fa  # frozen: v3.26.0
