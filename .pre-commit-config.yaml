@@ -40,6 +40,8 @@ repos:
     rev: 06a39750ec31860bb44f2acf67182c40016cd1e7  # frozen: v1.32.0
     hooks:
       - id: zizmor
+        # Also the overlays' CI fragments, which become ci.yml in new repos.
+        files: (^|/)\.github/(workflows/[^/]+\.ya?ml|dependabot\.ya?ml)$|^overlays/[^/]+/_ci\.yml$|(^|/)\.pre-commit-config\.yaml$
   - repo: https://github.com/rhysd/actionlint
     rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # frozen: v1.7.12
     hooks:

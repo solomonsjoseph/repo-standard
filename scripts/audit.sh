@@ -150,6 +150,7 @@ print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exe
   # pre-commit keeps an existing hook as pre-push.legacy when it installs its own.
   chk RS-HOOK-09 "pre-push guard installed locally (scripts/setup-machine.sh, then git init)" \
     "grep -qs 'refusing to push to main' '$dir/.git/hooks/pre-push' '$dir/.git/hooks/pre-push.legacy'"
+  xchk RS-HOOK-11 hook:zizmor "hook configured: zizmor" "grep -qs 'id: zizmor\$' '$dir/.pre-commit-config.yaml'"
 
   echo "== workflows"
   wf="$dir/.github/workflows"
@@ -173,10 +174,37 @@ for path in sorted(glob.glob(os.path.join(os.environ["WF"], "*.y*ml"))):
             hits.append(os.path.basename(path) + ":" + str(n))
 print(" ".join(hits))' || true)"
   chk RS-CI-05 "untrusted event text reaches scripts only through env${inline:+ (inline: $inline)}" "[ -z \"\$inline\" ]"
+  # Jobs without timeout-minutes run for up to 6 hours. A job that calls a
+  # reusable workflow (uses: at job level) cannot set one.
+  untimed="$(WF="$wf" python3 -c '
+import glob, os, re
+hits = []
+for path in sorted(glob.glob(os.path.join(os.environ["WF"], "*.y*ml"))):
+    lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+    in_jobs, job, ok = False, None, False
+    def done():
+        if job and not ok:
+            hits.append(os.path.basename(path) + ":" + job)
+    for line in lines:
+        if re.match(r"^jobs:\s*$", line):
+            in_jobs = True; continue
+        if in_jobs and re.match(r"^\S", line):
+            done(); in_jobs, job = False, None; continue
+        m = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line) if in_jobs else None
+        if m:
+            done(); job, ok = m.group(1), False; continue
+        if job and re.match(r"^    (timeout-minutes|uses):", line):
+            ok = True
+    done()
+print(" ".join(hits))' || true)"
+  chk RS-CI-06 "every job sets timeout-minutes${untimed:+ (missing: $untimed)}" "[ -z \"\$untimed\" ]"
 
   echo "== dependencies and releases"
   chk RS-DEP-01 "dependabot covers github-actions and pre-commit" \
     "grep -qs 'package-ecosystem: github-actions' '$dir/.github/dependabot.yml' && grep -qs 'package-ecosystem: pre-commit' '$dir/.github/dependabot.yml'"
+  short="$(sed -nE 's/^ *default-days: *([0-9]+).*/\1/p' "$dir/.github/dependabot.yml" 2>/dev/null | awk '$1 < 7' | head -n 1)"
+  chk RS-DEP-04 "Dependabot cooldown of at least 7 days on every ecosystem${short:+ (found $short days)}" \
+    "grep -qs 'default-days:' '$dir/.github/dependabot.yml' && [ -z \"\$short\" ]"
   overlay="$(stamp_field "$dir/$STAMP_FILE" overlay)"
   if [ "$overlay" = docs ]; then
     nap RS-DEP-02 "dependency manifest (docs overlay has none)"

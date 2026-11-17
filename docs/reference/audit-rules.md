@@ -91,6 +91,7 @@ The audit exits with status 1 when any rule fails.
 | RS-HOOK-07 | Vale Google style vendored in `.vale/` | |
 | RS-HOOK-08 | `commit-msg` hook installed in the local clone | |
 | RS-HOOK-09 | Pre-push guard installed in the local clone | OSPS-AC-03.01 (private repositories) |
+| RS-HOOK-11 | Hook configured: `zizmor` | OSPS-BR-01.01 |
 
 ## Workflows
 
@@ -101,10 +102,12 @@ The audit exits with status 1 when any rule fails.
 | RS-CI-03 | Every workflow sets top-level `permissions` | OSPS-AC-04.01 (L2) |
 | RS-CI-04 | No `pull_request_target` trigger | OSPS-BR-01.03 |
 | RS-CI-05 | Untrusted event text (titles, bodies, branch names) reaches scripts only through `env` | OSPS-BR-01.01 |
+| RS-CI-06 | Every job sets `timeout-minutes` (jobs that call a reusable workflow excepted) | |
 
 RS-CI-05 is a text match. It flags an expression such as
-`${{ github.event.pull_request.title }}` or `${{ github.head_ref }}`
-anywhere except as the value of an `env` entry.
+`${{ github.event.pull_request.title }}` or `${{ github.head_ref }}` in a
+`run:` or `script:` body, and allows it as the whole value of any other key
+(an `env` entry, an action input, an `if:`).
 
 ## Dependencies and releases
 
@@ -113,6 +116,7 @@ anywhere except as the value of an `env` entry.
 | RS-DEP-01 | Dependabot covers `github-actions` and `pre-commit` | |
 | RS-DEP-02 | A dependency manifest exists (`pyproject.toml`, `package.json`, `go.mod`, `DESCRIPTION` or `Package.swift`); N/A for the docs overlay | OSPS-QA-02.01 |
 | RS-DEP-03 | No committed binaries or build output | OSPS-QA-05.01, OSPS-QA-05.02 |
+| RS-DEP-04 | Dependabot waits at least 7 days (`cooldown.default-days`) on every ecosystem | |
 | RS-REL-01 | release-please tags are plain `vX.Y.Z` | OSPS-BR-02.01 (L2) |
 | RS-REL-02 | `.github/repo-standard.yml` records the standard version | |
 | RS-REL-03 | That version is the current release of the standard | |

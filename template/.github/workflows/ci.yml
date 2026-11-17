@@ -17,7 +17,7 @@ jobs:
   hooks:
     name: hooks
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30  # a cold cache builds every hook
     permissions:
       contents: read
     env:

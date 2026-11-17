@@ -114,7 +114,7 @@ if [ "$windows" = 1 ]; then
   # builds (Vale, gitleaks, actionlint, compiled Python extensions).
   sac="$(powershell.exe -NoProfile -Command "(Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy' -ErrorAction SilentlyContinue).VerifiedAndReputablePolicyState" 2>/dev/null | tr -d '\r')"
   case "$sac" in
-    1) warn "Smart App Control is on: it blocks hooks that pre-commit builds (vale, gitleaks, actionlint, check-yaml). Run hooks in WSL, or rely on CI for those hooks" ;;
+    1) warn "Smart App Control is on: it blocks hooks that pre-commit builds (vale, gitleaks, actionlint, zizmor, check-yaml). Run hooks in WSL, or rely on CI for those hooks" ;;
     2) warn "Smart App Control is in evaluation mode and may turn on and block hook binaries" ;;
     *) pass "Smart App Control is off" ;;
   esac

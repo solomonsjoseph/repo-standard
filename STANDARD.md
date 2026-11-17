@@ -106,8 +106,8 @@ machine. It is read-only and checks the tools, the private config, the gh
 logins and, on Windows, two settings that break hooks:
 
 - Windows Smart App Control blocks the unsigned binaries that pre-commit
-  downloads or builds (Vale, gitleaks, actionlint, and compiled Python
-  extensions). Run hooks in WSL, or skip only those hooks locally with
+  downloads or builds (Vale, gitleaks, actionlint, zizmor, and compiled
+  Python extensions). Run hooks in WSL, or skip only those hooks locally with
   `SKIP=...`. CI still runs every hook, so the merge gate is unchanged.
 - `core.autocrlf=true` (the Git for Windows default) is harmless inside
   standard repos, because `.gitattributes` forces LF line endings.
@@ -378,7 +378,9 @@ before merging any of them: merging the release PR is a release.
   - GitHub App tokens request only the permissions the job needs
     (`permission-<name>` inputs);
   - the `zizmor` hook audits workflows, `dependabot.yml` and the pre-commit
-    config for these and other known mistakes.
+    config for injection, permission and pinning mistakes (offline audits
+    only, so the hook needs no token); `audit.sh` checks the timeouts
+    (RS-CI-06) and the cooldown (RS-DEP-04).
 - Coverage: in the python and ts overlays new repos fail under 80 percent;
   go, r, and swift report coverage only. Retrofitted repos set their current
   coverage as the floor.
