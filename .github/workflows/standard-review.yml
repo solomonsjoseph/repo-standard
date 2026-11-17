@@ -1,6 +1,8 @@
 # Opens one review issue at the start of each month, listing the groups of
 # outside sources in docs/dev/sources.md that are due (repo-standard only,
-# not part of the template). Skips the month when a review issue is open.
+# not part of the template). A manual rerun in the same month opens nothing;
+# an older review issue that is still open does not stop this month's, so the
+# quarterly and yearly groups are never skipped.
 name: standard-review
 
 on:
@@ -28,8 +30,8 @@ jobs:
           case "$month" in 01|07) due="$due, twice a year" ;; esac
           [ "$month" = 01 ] && due="$due, yearly"
           title="Review the standard's sources: $(date -u +%Y-%m)"
-          if [ -n "$(gh issue list --state open --search "in:title \"Review the standard's sources\"" --json number --jq '.[].number')" ]; then
-            echo "a review issue is already open; nothing to do"
+          if gh issue list --state all --search "in:title \"$title\"" --json title --jq '.[].title' | grep -qxF "$title"; then
+            echo "this month's review issue already exists; nothing to do"
             exit 0
           fi
           gh issue create --title "$title" --body "$(cat <<EOF
