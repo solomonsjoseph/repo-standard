@@ -30,11 +30,13 @@ scripts/audit.sh OWNER/my-tool ~/path/to/my-tool
 | `scripts/sync.sh` | Publishes `repo-template`, `.github` defaults, or a `repo-standard` copy to an account through PRs |
 | `scripts/enable-private-reporting.sh` | Turns on private vulnerability reporting for an account's public repos |
 | `scripts/check-drift.sh` | Checks that this repo's copies of template files have not drifted (a hook) |
+| `scripts/setup-machine.sh` | One-time machine setup: the pre-push guard as a git template hook and the identity hook for Claude Code |
 | `scripts/doctor.sh` | Checks that this machine can run the scripts: tools, versions, private config, gh logins, Windows settings (read-only) |
 | `scripts/test-lib.sh` | Tests the portable helpers in `scripts/lib.sh` (a hook) |
 
 The scripts run in bash on macOS, Linux, and Windows (Git Bash). On a new
-machine, run `scripts/doctor.sh` first.
+machine, run `scripts/setup-machine.sh` once; it ends by running
+`scripts/doctor.sh`.
 
 Private per-owner settings live in `~/.config/repo-standard/OWNER.env`; see
 `scripts/lib.sh`.

@@ -15,7 +15,8 @@ for f in .editorconfig .gitattributes .gitignore .markdownlint.yaml .vale.ini .l
   CODE_OF_CONDUCT.md SECURITY.md scripts/check_docs.py \
   .github/pull_request_template.md .github/dependabot.yml \
   .github/ISSUE_TEMPLATE/bug_report.yml .github/ISSUE_TEMPLATE/feature_request.yml .github/ISSUE_TEMPLATE/config.yml \
-  .github/workflows/ci.yml .github/workflows/pr-title.yml .github/workflows/release-please.yml .github/workflows/links.yml; do
+  .github/workflows/ci.yml .github/workflows/pr-title.yml .github/workflows/release-please.yml .github/workflows/links.yml \
+  .github/workflows/main-guard.yml; do
   if ! cmp -s "$f" "template/$f"; then echo "drift: $f differs from template/$f"; status=1; fi
 done
 if ! diff -rq .vale template/.vale >/dev/null; then echo "drift: .vale/ differs from template/.vale/"; status=1; fi

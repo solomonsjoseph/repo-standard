@@ -62,11 +62,14 @@ load_owner() {
 
 # owner_name OWNER: display name used for commits and LICENSE holders.
 owner_name() { load_owner "$1"; echo "$OWNER_NAME"; }
+# act_as_account: the account in CONFIG_DIR/act-as (one account acts in every
+# repository), or nothing when the file does not exist.
+act_as_account() { [ -f "$CONFIG_DIR/act-as" ] && tr -d '[:space:]' < "$CONFIG_DIR/act-as" || true; }
 
 # set_identity DIR OWNER: local commit identity, credential helper and (when
 # SIGNING_KEY is set) SSH commit signing for the owner. Never global. The
-# helper string matches ~/.claude/hooks/git-identity-switch.sh so the hook
-# leaves it alone.
+# identity hook (scripts/claude-hooks/git-identity-switch.sh) calls this too,
+# and recognises a clone as already set by the "username=OWNER;" in the helper.
 set_identity() {
   local dir="$1" owner="$2" id gh_bin
   load_owner "$owner"

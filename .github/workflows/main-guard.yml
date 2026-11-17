@@ -1,0 +1,100 @@
+# Reports commits that reached main without a merged pull request, and
+# force pushes to main. Private repos on the Free plan have no rulesets, so
+# nothing on GitHub can block such a push; this run fails and opens an issue
+# instead. On public repos the main ruleset already blocks them, so this only
+# ever passes there.
+name: main-guard
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: main-guard-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  main-guard:
+    name: main-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: Check that every pushed commit came from a merged pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          FORCED: ${{ github.event.forced }}
+          PUSHER: ${{ github.event.pusher.name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          zero=0000000000000000000000000000000000000000
+          if [ "$BEFORE" = "$zero" ]; then
+            echo "main was created by this push (bootstrap commit); nothing to compare"
+            exit 0
+          fi
+          problems=""
+          if [ "$FORCED" = true ]; then
+            problems="main was force-pushed (previous tip $BEFORE)."
+          fi
+          # Commits this push added to main, oldest first.
+          if ! shas="$(gh api --paginate "repos/$REPO/compare/$BEFORE...$AFTER" --jq '.commits[].sha')"; then
+            problems="$problems
+          - the pushed commits could not be listed ($BEFORE...$AFTER); check them by hand."
+            shas=""
+          fi
+          # unmerged SHA...: the SHAs that are not the merge (squash) commit
+          # of a merged pull request into main. A commit that only belongs to
+          # a pull request's branch does not count.
+          # This assumes squash merges only (apply-settings.sh turns the other
+          # methods off); a merge-commit or rebase merge would be reported.
+          unmerged() {
+            local sha n
+            for sha in "$@"; do
+              n="$(gh api "repos/$REPO/commits/$sha/pulls" \
+                --jq "[.[] | select(.merged_at != null and .base.ref == \"main\" and .merge_commit_sha == \"$sha\")] | length" 2>/dev/null)" || n=error
+              [ "$n" != 0 ] && [ "$n" != error ] || echo "$sha $n"
+            done
+          }
+          # The association can lag the push by a few seconds: check once,
+          # wait once, and check again only what was missing.
+          # shellcheck disable=SC2086  # one SHA per word
+          missing="$(unmerged $shas)"
+          if [ -n "$missing" ]; then
+            sleep 20
+            # shellcheck disable=SC2046
+            missing="$(unmerged $(echo "$missing" | cut -d' ' -f1))"
+          fi
+          while read -r sha n; do
+            [ -n "$sha" ] || continue
+            if [ "$n" = error ]; then
+              problems="$problems
+          - $sha could not be checked (GitHub API error); check it by hand."
+            else
+              problems="$problems
+          - $sha is not the merge commit of a merged pull request into main."
+            fi
+          done <<< "$missing"
+          if [ -z "$problems" ]; then
+            echo "every commit on main came from a merged pull request"
+            exit 0
+          fi
+          body="A push to main bypassed the pull request flow (STANDARD.md section 7).
+
+          Pushed by: $PUSHER
+          Range: $BEFORE...$AFTER
+          Run: $RUN_URL
+          $problems
+
+          Review the commits. If they should not be on main, revert them through a pull request."
+          gh issue create --repo "$REPO" --title "main-guard: change reached main without a pull request" --body "$body"
+          echo "::error::commits reached main without a merged pull request; issue opened"
+          exit 1

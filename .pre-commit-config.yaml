@@ -116,3 +116,9 @@ repos:
         entry: scripts/test-lib.sh
         pass_filenames: false
         files: ^scripts/(lib|test-lib)\.sh$
+      - id: test-guards
+        name: the pre-push guard passes its tests (repo-standard only)
+        language: script
+        entry: scripts/test-guards.sh
+        pass_filenames: false
+        files: ^scripts/(git-hooks/|test-guards\.sh$)
