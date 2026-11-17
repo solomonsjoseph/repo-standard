@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: new-repo.sh OWNER NAME OVERLAY public|private --license SPDX|none
-#          [--addon api-http|api-events|sensitive-data]... [--desc TEXT] [--dir PARENT]
+#          [--addon api-http|api-events|sensitive-data|citation]... [--desc TEXT] [--dir PARENT]
 # Creates a repository that follows STANDARD.md:
 #   1. builds it locally from template/ plus the language overlay (and the
 #      public overlay for public repos), with placeholders filled in;

@@ -3,8 +3,8 @@
 #          [--codeql-langs "L1 L2"]
 #
 # Applies a language overlay (python, ts, go, r, swift, docs) or an add-on
-# overlay (api-http, api-events, sensitive-data) to a repo, plus the public overlay when
-# --public is set. Placeholders (__OWNER__, __REPO_NAME__, ...) are filled in.
+# overlay (api-http, api-events, sensitive-data, citation) to a repo, plus the
+# public overlay when --public is set. Placeholders (__OWNER__, __REPO_NAME__, ...) are filled in.
 #
 # Default mode (new repos): TARGET_DIR already holds template/; overlay files
 # are copied over it and the fragments below are merged in.
@@ -105,6 +105,26 @@ if [ "$public" = 1 ] && [ -f "$src/_codeql-langs" ]; then
   LANGS="$langs" perl -pi -e 's/__CODEQL_LANGS__/$ENV{LANGS}/' "$stage/.github/workflows/codeql.yml"
 fi
 render_placeholders "$stage" "$owner" "$name" "$pkg" "$desc"
+# citation add-on: title, abstract and first author, written as escaped
+# YAML strings (a description may hold quotes or backslashes). The author is
+# OWNER_NAME from the owner's private config, split before the last word
+# (check the split for multi-word family names and suffixes). Without the
+# config, the login is recorded as an entity (name:) for the maintainer to
+# replace with the people who wrote the software.
+if [ -f "$stage/CITATION.cff" ]; then
+  author="$( (owner_name "$owner") 2>/dev/null || true)"
+  NAME="$name" DESC="$desc" AUTHOR="$author" LOGIN="$owner" perl -0pi -e '
+    sub yq { my $s = shift; $s =~ s/\\/\\\\/g; $s =~ s/"/\\"/g; return "\"$s\"" }
+    s/^title: .*$/"title: " . yq($ENV{NAME})/me;
+    s/^abstract: .*$/"abstract: " . yq($ENV{DESC})/me;
+    my $a = $ENV{AUTHOR};
+    my $who;
+    if ($a =~ /^(.+)\s+(\S+)$/) { $who = "  - given-names: " . yq($1) . "\n    family-names: " . yq($2) . "\n" }
+    elsif (length $a)            { $who = "  - family-names: " . yq($a) . "\n" }
+    else                         { $who = "  - name: " . yq($ENV{LOGIN}) . "\n" }
+    s/^  - given-names: "__AUTHOR_GIVEN__"\n    family-names: "__AUTHOR_FAMILY__"\n/$who/m;
+  ' "$stage/CITATION.cff"
+fi
 
 # Files on the repo's exclude list (.github/repo-standard-exclude) are never
 # copied or parked, so a re-run does not bring back what the repo dropped.

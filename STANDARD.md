@@ -32,7 +32,8 @@ idea
 ## 2. Creating a repository
 
 1. Decide the license, visibility, language overlay, any add-on overlay
-   (`api-http`, `api-events`, `sensitive-data`), whether the repo publishes a docs site, and
+   (`api-http`, `api-events`, `sensitive-data`, `citation`), whether the repo
+   publishes a docs site, and
    the other per-repo adjustments (section 12).
 2. Run:
 
@@ -464,6 +465,7 @@ by its linters and formatters, never by review comments alone.
 | api-http (add-on) | `api/openapi.yaml` | Redocly CLI lint | OpenAPI 3.1 | n/a |
 | api-events (add-on) | `api/asyncapi.yaml` | AsyncAPI CLI validate | AsyncAPI 3.0 | n/a |
 | sensitive-data (add-on) | `tests/fixtures/synthetic/`, `docs/dev/data-handling.md` | gitleaks identifier rules (`.gitleaks.toml`), `no-data-files` hook, data `.gitignore` entries, Claude Code Read deny rules | 45 CFR 164.514 (Safe Harbor) for test data | n/a |
+| citation (add-on) | `CITATION.cff`, `docs/how-to/cite.md` | none | Citation File Format 1.2.0 | n/a |
 | base | none | EditorConfig, shellcheck, yamllint, actionlint, zizmor, gitleaks, Vale, markdownlint, lychee, check_docs | n/a | simple |
 
 Jupyter notebooks use the python overlay with nbstripout. Static HTML sites
@@ -487,6 +489,8 @@ project's decisions file:
 - sensitive data (for example PHI): such repos take the `sensitive-data`
   add-on (`--addon sensitive-data`), stay private, and keep real data out
   of git, GitHub and any AI tool not covered by an agreement for it;
+- research software that people cite: take the `citation` add-on, which
+  adds `CITATION.cff` for GitHub's citation button and explains Zenodo DOIs;
 - CLA or contribution rules (for example a client or collaborator's);
 - whether the repo publishes a docs site (section 15) and from which
   trigger;
