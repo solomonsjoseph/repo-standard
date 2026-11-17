@@ -12,13 +12,22 @@ status=0
 # CONTRIBUTING.md and AGENTS.md (owner filled in), .github/CODEOWNERS,
 # .pre-commit-config.yaml (extra excludes for template/ and overlays/),
 # release-please-config.json and the manifest.
-for f in .editorconfig .gitattributes .gitignore .markdownlint.yaml .vale.ini .lychee.toml \
+for f in .editorconfig .gitattributes .gitignore .git-blame-ignore-revs .markdownlint.yaml .vale.ini .lychee.toml \
   CODE_OF_CONDUCT.md SECURITY.md SUPPORT.md .claude/settings.json scripts/check_docs.py \
   .github/pull_request_template.md .github/dependabot.yml \
-  .github/ISSUE_TEMPLATE/bug_report.yml .github/ISSUE_TEMPLATE/feature_request.yml .github/ISSUE_TEMPLATE/config.yml \
+  .github/ISSUE_TEMPLATE/bug_report.yml .github/ISSUE_TEMPLATE/feature_request.yml \
   .github/workflows/ci.yml .github/workflows/pr-title.yml .github/workflows/release-please.yml .github/workflows/links.yml \
   .github/workflows/main-guard.yml; do
   if ! cmp -s "$f" "template/$f"; then echo "drift: $f differs from template/$f"; status=1; fi
+done
+# Copies with the template's __OWNER__ and __REPO_NAME__ filled in.
+# The slug comes from the root file itself, so forks and synced copies pass.
+slug="$(sed -nE 's#.*https://github\.com/([^/]+/[^/]+)/blob/main/SUPPORT\.md.*#\1#p' .github/ISSUE_TEMPLATE/config.yml | head -n 1)"
+# shellcheck disable=SC2043  # a list of one, for now
+for f in .github/ISSUE_TEMPLATE/config.yml; do
+  if ! sed -e "s#__OWNER__#${slug%%/*}#g" -e "s#__REPO_NAME__#${slug#*/}#g" "template/$f" | cmp -s - "$f"; then
+    echo "drift: $f differs from template/$f (placeholders filled in)"; status=1
+  fi
 done
 if ! diff -rq .vale template/.vale >/dev/null; then echo "drift: .vale/ differs from template/.vale/"; status=1; fi
 hook_re="$(grep -A14 'id: no-scratch-files' template/.pre-commit-config.yaml | sed -n 's/^ *files: (?i)//p')"

@@ -61,6 +61,9 @@ stage_defaults() {
   copy_tree "$STANDARD_ROOT/org-defaults" "$1"
   cp "$STANDARD_ROOT/template/CODE_OF_CONDUCT.md" "$1/"
   copy_tree "$STANDARD_ROOT/template/.github/ISSUE_TEMPLATE" "$1/.github/ISSUE_TEMPLATE" --delete
+  # Default community files have no repository of their own: questions go to
+  # the SUPPORT.md in OWNER/.github.
+  perl -pi -e 's#/__REPO_NAME__/blob/main/SUPPORT\.md#/.github/blob/main/SUPPORT.md#' "$1/.github/ISSUE_TEMPLATE/config.yml"
   render_owner "$1"
 }
 stage_standard() {

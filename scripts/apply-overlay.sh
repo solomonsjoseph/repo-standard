@@ -237,6 +237,11 @@ fi
 
 # Default mode: the base template files in TARGET_DIR still hold placeholders.
 [ "$retrofit" = 0 ] && render_placeholders "$target" "$owner" "$name" "$pkg" "$desc"
+# shields.io cannot read a private repository, so a new private repository
+# keeps only GitHub's own CI badge.
+if [ "$retrofit" = 0 ] && [ "$kind" = language ] && [ "$public" = 0 ] && [ -f "$target/README.md" ]; then
+  perl -ni -e 'print unless /^\[!\[[^\]]*\]\(https:\/\/img\.shields\.io\//' "$target/README.md"
+fi
 # Accounts other than the source owner keep their standard private: no links.
 is_source_owner "$owner" || delink_standard "$target"
 
