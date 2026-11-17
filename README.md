@@ -31,6 +31,7 @@ OpenSSF Baseline control each one covers.
 | `scripts/finish-repo.sh` | Finishes a repo created from `repo-template` in the GitHub UI, through a PR |
 | `scripts/apply-overlay.sh` | Adds a language overlay or add-on; `--retrofit` copies only missing files into an existing repo |
 | `scripts/apply-settings.sh` | Merge options, Actions permissions, security features, labels, the `main` and `release-tags` rulesets (idempotent) |
+| `scripts/update-repo.sh` | Brings a repo up to a newer release of the standard with a three-way merge, keeping its own edits |
 | `scripts/audit.sh` | Reports pass, fail, or not applicable for every rule (read-only) |
 | `scripts/sync.sh` | Publishes `repo-template`, `.github` defaults, or a `repo-standard` copy to an account through PRs |
 | `scripts/enable-private-reporting.sh` | Turns on private vulnerability reporting for an account's public repos |

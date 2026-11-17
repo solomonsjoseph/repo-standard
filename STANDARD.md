@@ -477,6 +477,37 @@ project's decisions file:
    automatically.
 8. Run `scripts/apply-settings.sh` only after the PR merges and CI is green.
 
+### Updating to a new release of the standard
+
+A repository that follows the standard records the version in
+`.github/repo-standard.yml`. To bring it up to a newer release:
+
+```bash
+scripts/update-repo.sh DIR [--to vX.Y.Z] [--dry-run]
+```
+
+The script renders the template and overlays at the recorded version and at
+the target (default: the newest tag), each with that version's own scripts,
+and merges the difference into each file with `git merge-file`. The
+repository's own edits stay; only lines the standard changed move. It works
+on a `chore/update-repo-standard-X.Y.Z` branch and leaves the changes
+uncommitted for review. It:
+
+- adds files that are new in the standard, and parks the standard's copy in
+  `.scratch/repo-standard-update/` when the repository already has its own;
+- removes files the standard dropped only when the repository never changed
+  them;
+- leaves `<<<<<<<` conflict markers where both sides changed the same lines
+  (the `check-merge-conflict` hook blocks a commit until they are resolved);
+- never touches files on the exclude list, sample source or tests.
+
+Read the `CHANGELOG.md` entries between the two versions before merging: a
+major release's `BREAKING CHANGE:` footer says what to do by hand. Repositories
+adopted before the stamp existed need it first: write
+`.github/repo-standard.yml` by hand with the version the files came from, or
+pass `--from REF`. [ADR 0004](docs/dev/adr/0004-update-repositories-with-a-three-way-merge.md)
+records why this is a script rather than Copier.
+
 ## 14. Labels
 
 `type/bug`, `type/feature`, `type/docs`, `type/chore`, `priority/high`,
