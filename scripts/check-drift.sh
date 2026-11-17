@@ -21,7 +21,8 @@ for f in .editorconfig .gitattributes .gitignore .git-blame-ignore-revs .markdow
   if ! cmp -s "$f" "template/$f"; then echo "drift: $f differs from template/$f"; status=1; fi
 done
 # Copies with the template's __OWNER__ and __REPO_NAME__ filled in.
-slug="$(origin_slug "$STANDARD_ROOT")"; slug="${slug:-solomonsjoseph/repo-standard}"
+# The slug comes from the root file itself, so forks and synced copies pass.
+slug="$(sed -nE 's#.*https://github\.com/([^/]+/[^/]+)/blob/main/SUPPORT\.md.*#\1#p' .github/ISSUE_TEMPLATE/config.yml | head -n 1)"
 # shellcheck disable=SC2043  # a list of one, for now
 for f in .github/ISSUE_TEMPLATE/config.yml; do
   if ! sed -e "s#__OWNER__#${slug%%/*}#g" -e "s#__REPO_NAME__#${slug#*/}#g" "template/$f" | cmp -s - "$f"; then

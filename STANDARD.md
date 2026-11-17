@@ -443,8 +443,9 @@ stands alone, then the problem, the approach, and its limits.
 Docs follow the Google developer documentation style guide; section 15 has
 the full documentation rules. Every README has: what it is, installation,
 quick start, usage, development, contributing, license. Public repositories
-show CI, release and license badges under the title; private ones show the
-CI badge only, because the badge services cannot read them.
+show CI and release badges under the title, plus a license badge when they
+have a license; private ones show the CI badge only, because the badge
+services cannot read them.
 
 Final design decisions get an ADR in `docs/dev/adr/` (context, decision,
 consequences). Code follows the language style guide in section 11, enforced

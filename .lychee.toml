@@ -2,6 +2,8 @@
 # links and anchors only). External links are checked weekly by links.yml.
 include_fragments = "full"
 exclude_path = ["(^|/)CHANGELOG\\.md$", "(^|/)node_modules/", "(^|/)\\.scratch/"]
-exclude = ["^https://github\\.com/[^/]+/[^/]+/(compare|commit)/"]
+# URLs that still hold a placeholder: repo-template keeps __REPO_NAME__ until
+# finish-repo.sh fills it in.
+exclude = ["^https://github\\.com/[^/]+/[^/]+/(compare|commit)/", "__REPO_NAME__"]
 max_retries = 2
 accept = ["200..=299", "429"]

@@ -66,6 +66,7 @@ The audit exits with status 1 when any rule fails.
 | RS-FILE-24 | `scripts/check_docs.py` | |
 | RS-FILE-25 | `docs/index.md` | OSPS-DO-01.01 |
 | RS-FILE-26 | `docs/dev/index.md` | |
+| RS-FILE-27 | `.git-blame-ignore-revs` | |
 | RS-LIC-01 | `LICENSE`, unless the README states "No license: all rights reserved" | OSPS-LE-03.01 |
 
 ## Content

@@ -120,6 +120,7 @@ else
 24 scripts/check_docs.py
 25 docs/index.md
 26 docs/dev/index.md
+27 .git-blame-ignore-revs
 FILES
   if [ "$no_license" = 1 ]; then nap RS-LIC-01 "LICENSE (repo chose no license)"
   else xchk RS-LIC-01 LICENSE "LICENSE" "[ -f '$dir/LICENSE' ]"; fi

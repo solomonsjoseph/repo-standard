@@ -43,7 +43,7 @@ every rule an agent needs is repeated here, so the link is background.
   `CONTRIBUTING.md`, that it is developed with AI coding agents.
 - Never edit `CHANGELOG.md`; release-please writes it.
 - A formatting-only change is its own pull request; after it merges, add
-  its commit SHA to `.git-blame-ignore-revs`.
+  the full SHA of its squash commit on `main` to `.git-blame-ignore-revs`.
 
 ## Files and content
 

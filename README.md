@@ -8,6 +8,18 @@ The GitHub repository standard for every repository of this account, plus
 the templates and scripts that apply it. Read
 [STANDARD.md](STANDARD.md) for the rules.
 
+## Installation
+
+Clone this repository once per machine; the scripts run from the clone. On
+Windows, run them from Git Bash. Then set up the machine (the pre-push guard
+and the identity hook) and check it:
+
+```bash
+git clone https://github.com/solomonsjoseph/repo-standard.git ~/Projects/solomonsjoseph/repo-standard
+scripts/setup-machine.sh
+scripts/doctor.sh
+```
+
 ## Quick start
 
 Create a new repository that follows the standard:
