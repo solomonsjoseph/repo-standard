@@ -43,8 +43,8 @@ schemas and synthetic test data only.
 |---|---|---|
 | `no-data-files` hook | pre-commit and CI | Data file types (CSV, Parquet, Excel, SAS, Stata, SPSS, R data, SQLite, DICOM and others) anywhere except `tests/fixtures/synthetic/` |
 | gitleaks with `.gitleaks.toml` | pre-commit and the CI `secrets` job | Every default secret rule, plus SSNs and labeled medical record numbers and dates of birth, in every file including fixtures |
-| `.gitignore` | git | `data/`, `raw/`, `_targets/`, `_freeze/`, R session files and common data formats |
-| `.claude/settings.json` deny rules | Claude Code | Reads of `data/`, `raw/`, `_targets/` and binary data formats (SAS, Stata, SPSS, R, Parquet, Excel); CSV stays readable so agents can use the synthetic fixtures |
+| `.gitignore` | git | The root `data/`, `raw/`, `_targets/` and `_freeze/` folders, R session files, and the binary data formats the deny rules list (except in `tests/fixtures/synthetic/`) |
+| `.claude/settings.json` deny rules | Claude Code | Reads of `data/`, `raw/`, `_targets/` and binary data formats (SAS, Stata, SPSS, R, Parquet, Feather, Excel); CSV stays readable so agents can use the synthetic fixtures |
 
 These checks catch mistakes; they do not prove that data is absent. The
 Claude Code deny rules stop the Read tool only: a shell command can still

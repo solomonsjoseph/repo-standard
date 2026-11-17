@@ -120,14 +120,21 @@ fi
 put_fragment() {
   local file="$1" marker="$2" frag="$3" mode="$4"
   [ -f "$frag" ] && [ -s "$frag" ] || return 0
-  # Re-runs: never append a fragment the file already holds. For a language
+  # Re-runs: never append a fragment the file already holds, either whole or
+  # as its landmarks (every hook id and Markdown heading it has), so an older
+  # or reworded copy of the section is not added twice. For a language
   # overlay, content after the marker also means a merge happened before (by
   # this script or by hand). Add-ons append after the language overlay, so
   # for them only the fragment itself counts.
   if [ "$mode" = append ] && [ -f "$file" ]; then
     if perl -0777 -e 'local $/; open my $f, "<", $ARGV[0] or exit 1; my $frag = <$f>;
-        open my $t, "<", $ARGV[1] or exit 1; my $text = <$t>; exit(index($text, $frag) >= 0 ? 0 : 1)' "$frag" "$file" ||
-       { [ "$retrofit" = 1 ] && [ -f "$src/_release-type" ] &&
+        open my $t, "<", $ARGV[1] or exit 1; my $text = <$t>;
+        exit 0 if index($text, $frag) >= 0;
+        my @marks = $frag =~ /^(\s*- id: \S+|#{1,6} .+?)\s*$/mg;
+        exit 1 unless @marks;
+        for my $m (@marks) { exit 1 unless $text =~ /^\Q$m\E\s*$/m }
+        exit 0' "$frag" "$file" ||
+       { [ "$retrofit" = 1 ] && [ "$kind" = language ] &&
          awk -v m="$marker" 'index($0, m) { seen = 1; next } seen && NF { found = 1 } END { exit !found }' "$file"; }; then
       echo "note: ${file#"$target"/} already has the $overlay section; not appended again"
       return 0
@@ -175,18 +182,25 @@ put_fragment "$target/.pre-commit-config.yaml" "# LANGUAGE HOOKS (added by overl
 put_fragment "$target/.github/dependabot.yml" "# LANGUAGE ECOSYSTEMS (added by overlay)" "$src/_dependabot.yml" append
 put_fragment "$target/AGENTS.md" "<!-- LANGUAGE COMMANDS (added by overlay) -->" "$src/_agents.md" append
 # _claude-deny: one permission rule per line, inserted into the deny list of
-# .claude/settings.json unless already there. A settings file without the
-# standard's "deny": [ line is parked for a hand merge.
+# .claude/settings.json unless already there or on the repo's exclude list
+# (claude-deny:<rule>). A settings file without the standard's "deny": [
+# line is parked for a hand merge.
 if [ -s "$src/_claude-deny" ]; then
   settings="$target/.claude/settings.json"
-  if [ -f "$settings" ] && grep -q '"deny": \[$' "$settings"; then
-    RULES="$(cat "$src/_claude-deny")" perl -0pi -e '
+  excl="$(exclude_entries "$target/$EXCLUDE_FILE")"
+  rules="$(while IFS= read -r r || [ -n "$r" ]; do
+    [ -n "$r" ] && ! in_excludes "claude-deny:$r" "$excl" && printf '%s\n' "$r"; done < "$src/_claude-deny" || true)"
+  if [ -z "$rules" ]; then :
+  elif [ -f "$settings" ] && grep -q '"deny": \[$' "$settings"; then
+    RULES="$rules" perl -0pi -e '
       my @add = grep { length && index($_, chr(34)) < 0 } split /\r?\n/, $ENV{RULES};
       my $text = $_;
       @add = grep { index($text, chr(34) . $_ . chr(34)) < 0 } @add;
       if (@add) {
         my $ins = join("", map { "      " . chr(34) . $_ . chr(34) . ",\n" } @add);
-        s/("deny": \[\n)/$1$ins/;
+        # An empty list takes no comma after its last rule.
+        $ins =~ s/,\n\z/\n/ if /"deny": \[\r?\n\s*\]/;
+        s/("deny": \[\r?\n)/$1$ins/;
       }' "$settings"
   else
     mkdir -p "$merge_dir"

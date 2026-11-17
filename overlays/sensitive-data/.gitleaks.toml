@@ -3,6 +3,8 @@
 # every default secret rule and adds patterns for personal identifiers that
 # must never reach git. The rules apply to synthetic fixtures too: synthetic
 # identifiers use formats no real record has (docs/dev/data-handling.md).
+# A label may be part of a longer snake_case name (patient_ssn, pt_mrn), and
+# may be followed by ":", "=", "#", "," or only a space.
 title = "repo-standard sensitive-data"
 
 [extend]
@@ -17,20 +19,20 @@ tags = ["pii", "phi"]
 [[rules]]
 id = "us-ssn-labeled"
 description = "Nine-digit number labeled as an SSN (900-999 synthetic range excepted)"
-regex = '''(?i)\bssn\b["']?\s*[:=]\s*["']?(?:00[1-9]|0[1-9]\d|[1-5]\d{2}|6[0-57-9]\d|66[0-57-9]|[78]\d{2})\d{6}\b'''
+regex = '''(?i)(?:\b|_)ssn(?:\b|_)["']?\s*[:=#,]?\s*["']?(?:00[1-9]|0[1-9]\d|[1-5]\d{2}|6[0-57-9]\d|66[0-57-9]|[78]\d{2})\d{6}\b'''
 keywords = ["ssn"]
 tags = ["pii", "phi"]
 
 [[rules]]
 id = "medical-record-number"
 description = "Value labeled as a medical record number"
-regex = '''(?i)\b(?:mrn|medical[ _-]?record[ _-]?(?:number|num|no)?)\b["']?\s*[:=#]\s*["']?[A-Z]{0,3}\d{5,12}\b'''
+regex = '''(?i)(?:\b|_)(?:mrn|medical[ _-]?record[ _-]?(?:number|num|no)?)(?:\b|_)["']?\s*[:=#,]?\s*["']?[A-Z]{0,3}\d{5,12}\b'''
 keywords = ["mrn", "medical"]
 tags = ["phi"]
 
 [[rules]]
 id = "date-of-birth"
 description = "Full date labeled as a date of birth"
-regex = '''(?i)\b(?:dob|date[ _-]?of[ _-]?birth|birth[ _-]?date)\b["']?\s*[:=,]\s*["']?(?:\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{2,4})'''
+regex = '''(?i)(?:\b|_)(?:dob|date[ _-]?of[ _-]?birth|birth[ _-]?date)(?:\b|_)["']?\s*[:=#,]?\s*["']?(?:\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{2,4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4})'''
 keywords = ["dob", "birth"]
 tags = ["pii", "phi"]
