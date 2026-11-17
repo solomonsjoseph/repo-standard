@@ -10,16 +10,19 @@
 # `HEAD:refs/heads/main` and `:main` (deletion) are all caught, including
 # pushes of commits the remote already has.
 #
-# Two exceptions: repositories that do not follow the standard (no
-# .github/repo-standard.yml) are left alone, and the first push that creates
-# main on an empty remote (the bootstrap commit of new-repo.sh) is allowed.
+# Two exceptions: repositories that do not follow the standard are left
+# alone (a standard repository's .pre-commit-config.yaml has the
+# no-commit-to-branch hook, or it has the .github/repo-standard.yml stamp),
+# and the first push that creates main on an empty remote (the bootstrap
+# commit of new-repo.sh) is allowed.
 #
 # Not a security boundary: `git push --no-verify` skips it. The main-guard
 # workflow reports anything that reaches main without a merged pull request.
 # If pre-commit later installs its own pre-push hook, it keeps this one as
 # pre-push.legacy and still runs it.
 top="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
-[ -f "$top/.github/repo-standard.yml" ] || exit 0
+[ -f "$top/.github/repo-standard.yml" ] ||
+  grep -qs 'id: no-commit-to-branch' "$top/.pre-commit-config.yaml" || exit 0
 zero=0000000000000000000000000000000000000000
 status=0
 while read -r _local_ref local_sha remote_ref remote_sha; do
