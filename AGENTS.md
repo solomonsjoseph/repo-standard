@@ -15,8 +15,8 @@ every rule an agent needs is repeated here, so the link is background.
 - Features and bugs start from an issue; chores and docs may skip it.
 - Keep a pull request small: about 100 changed lines, split past 400.
   Refactors go in their own pull request.
-- Fill in every section of the pull request template. An empty "How I
-  tested this" section means the pull request is not ready.
+- Fill in every section of the pull request template. A pull request
+  with an empty testing section is not ready.
 - Run a code review on the full diff, address the findings, and post a short
   summary comment before asking for a merge.
 - Ask the maintainer before merging any pull request, including release
