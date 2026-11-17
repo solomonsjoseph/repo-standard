@@ -48,6 +48,9 @@ done
 [ -n "$owner" ] || die "--owner is required (placeholders would stay unfilled)"
 src="$STANDARD_ROOT/overlays/$overlay"
 [ -d "$src" ] || die "no overlay '$overlay' (see $STANDARD_ROOT/overlays)"
+# A language overlay (python, ts, ...) carries a _release-type; any other
+# overlay is an add-on (api-http, ...). Every kind-dependent step uses this.
+kind=addon; [ -f "$src/_release-type" ] && kind=language
 [ -d "$target" ] || die "$target does not exist"
 [ "$retrofit" = 1 ] || [ -f "$target/.pre-commit-config.yaml" ] || die "$target has no base template"
 name="${name:-$(basename "$target")}"
@@ -222,7 +225,7 @@ if [ "$retrofit" = 1 ]; then
   git -C "$target" ls-files -s 2>/dev/null | awk '$1 == "120000" { sub(/^[^\t]*\t/, ""); print }' |
     while read -r link; do
       echo "warning: $link is a tracked symlink to $(readlink "$target/$link"); CI cannot follow it. Commit the real file or remove it." >&2
-    done
+    done || true  # a target that is not a git repo has no tracked links
 
   # dependency-review fails on the adoption PR unless the dependency graph is
   # on, so turn on Dependabot alerts now rather than after the merge.
@@ -239,4 +242,46 @@ if [ "$retrofit" = 1 ]; then
     echo "note: no GitHub origin remote; turn on Dependabot alerts before opening the PR" >&2
   fi
 fi
-info "overlay $overlay applied to $target"
+# Stamp the repository with the standard version it now follows (ADR 0002),
+# its language overlay and its add-ons. Re-runs update the fields in place
+# and keep any other line. Only the version is recorded, never a link to the
+# source, so the stamp suits accounts that must stay unlinked.
+stamp="$target/$STAMP_FILE"
+std_version="$(manifest_version "$STANDARD_ROOT")"
+[ -n "$std_version" ] || die "cannot read the standard's version from $STANDARD_ROOT/.release-please-manifest.json"
+st_version="$(stamp_field "$stamp" standard-version)"
+st_overlay="$(stamp_field "$stamp" overlay)"
+st_addons="$(stamp_field "$stamp" addons | sed -E 's/^\[//; s/\]$//')"
+st_vis="$(stamp_field "$stamp" visibility)"
+# A repository that already records a version keeps it: adding an overlay
+# does not bring the files it already has up to date. A first stamp records
+# the current version, because a retrofit ends with the hand merge of every
+# parked file (STANDARD.md section 13).
+if [ -n "$st_version" ] && [ "$st_version" != "$std_version" ]; then
+  echo "note: $stamp keeps standard-version $st_version; the version moves to $std_version only when the files are updated"
+  std_version="$st_version"
+fi
+if [ "$kind" = language ]; then
+  case "$st_overlay" in ''|none|"$overlay") ;;
+    *) echo "warning: the stamp recorded overlay $st_overlay; it now records $overlay (one language overlay per repository)" >&2 ;;
+  esac
+  st_overlay="$overlay"
+fi
+[ "$kind" = addon ] && case ", $st_addons," in *", $overlay,"*) ;; *) st_addons="${st_addons:+$st_addons, }$overlay" ;; esac
+# --public sets the visibility; otherwise a recorded one is kept, and a
+# language overlay applied without --public is a private repository.
+if [ "$public" = 1 ]; then st_vis=public
+elif [ -z "$st_vis" ] || [ "$st_vis" = unknown ]; then
+  if [ "$kind" = language ]; then st_vis=private; else st_vis=unknown; fi
+fi
+mkdir -p "$target/.github"
+[ -f "$stamp" ] || cat > "$stamp" <<'STAMP'
+# Written by repo-standard (scripts/apply-overlay.sh): the version of the
+# standard this repository follows, and what was applied from it. Updated by
+# the scripts, not by hand.
+STAMP
+set_stamp_field "$stamp" standard-version "$std_version"
+set_stamp_field "$stamp" overlay "${st_overlay:-none}"
+set_stamp_field "$stamp" addons "[$st_addons]"
+set_stamp_field "$stamp" visibility "$st_vis"
+info "overlay $overlay applied to $target (standard $std_version)"
