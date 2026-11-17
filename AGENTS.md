@@ -57,6 +57,18 @@ every rule an agent needs is repeated here, so the link is background.
   records. Documentation follows the Diataxis folders in `docs/` and ships
   in the same pull request as the behavior it describes.
 
+## Tests
+
+- Every bug fix adds a test that fails without the fix. Every feature
+  ships with its tests in the same pull request.
+- Tests are deterministic: fixed random seeds, no network, no dependence
+  on the clock or on test order. A flaky test is a bug; fix it, never
+  retry it.
+- Parsers, serializers and data transforms get property-based tests
+  (Hypothesis, fast-check) where the language overlay supports them.
+- Never lower a coverage threshold, skip a test, or mark it as expected to
+  fail to make a check pass.
+
 ## Before the first change
 
 If `docs/dev/` does not yet record this repository's adjustments, ask the

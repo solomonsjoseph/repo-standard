@@ -47,7 +47,10 @@ strict = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+# Strict: unknown markers and config keys fail, and so does an xfail test
+# that passes.
+addopts = "-q -ra --strict-markers --strict-config"
+xfail_strict = true
 
 [tool.coverage.run]
 source = ["src"]
