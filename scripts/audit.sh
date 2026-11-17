@@ -140,7 +140,7 @@ print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exe
   echo "== hooks"
   unfrozen="$(grep -E '^\s+rev: ' "$dir/.pre-commit-config.yaml" 2>/dev/null | grep -vE 'rev: [0-9a-f]{40}' || true)"
   chk RS-HOOK-01 "pre-commit hook revs frozen to SHAs${unfrozen:+ (not frozen: $(echo "$unfrozen" | wc -l | tr -d ' ') revs)}" "[ -z \"\$unfrozen\" ]"
-  for spec in 02:vale 03:lychee 04:check-docs 05:no-scratch-files 06:no-ai-attribution; do
+  for spec in 02:vale 03:lychee 04:check-docs 05:no-scratch-files 06:no-ai-attribution 10:no-invisible-unicode; do
     h="${spec#*:}"
     xchk "RS-HOOK-${spec%%:*}" "hook:$h" "hook configured: $h" "grep -qs 'id: $h\$' '$dir/.pre-commit-config.yaml'"
   done

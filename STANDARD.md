@@ -189,8 +189,16 @@ Rules:
 - Generated files are not committed unless the toolchain requires it (lock
   files are committed).
 - No secrets, real personal data, or large binaries in the tree.
-- Source files are English and plain ASCII only. Build any non-ASCII test
-  value from escapes.
+- Source and config files are English and plain ASCII only. Build any
+  non-ASCII test value from escapes. Prose (`.md`, `.mdx`, `.rst`),
+  translations (`.po`, `.pot`, `.xlf`, `.xliff`), tabular data (`.csv`,
+  `.tsv`), and data files (JSON, YAML, TOML, text, XML, string tables) in
+  `locales/`, `i18n/`, `translations/`, `fixtures/` and `testdata/` folders
+  may hold Unicode text; code in those folders stays ASCII.
+- No file may contain bidirectional overrides or isolates, zero-width
+  spaces or invisible operators (joiners and direction marks are allowed),
+  which make code read differently from how it runs (the
+  `no-invisible-unicode` hook; [ADR 0005](docs/dev/adr/0005-ascii-source-and-invisible-unicode.md)).
 
 ## 4. Branches
 

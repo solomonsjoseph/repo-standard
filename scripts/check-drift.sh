@@ -33,6 +33,15 @@ ai_body="$(sed -n "s/^ *pattern='\(.*\)'\$/\1/p" template/.github/workflows/pr-t
 if [ -z "$ai_root" ] || [ "$ai_root" != "$(ai_re template/.pre-commit-config.yaml)" ] || [ "$ai_root" != "$ai_body" ]; then
   echo "drift: the AI attribution pattern differs between the pre-commit configs and pr-title.yml"; status=1
 fi
+# The Unicode rules (ascii-only exclude, no-invisible-unicode pattern) are the
+# same in the root and template configs.
+for spec in ascii-only:exclude no-invisible-unicode:entry; do
+  hook="${spec%%:*}"; key="${spec#*:}"
+  get() { grep -A6 "id: $hook\$" "$1" | grep -m1 "^ *$key: "; }
+  if [ -z "$(get template/.pre-commit-config.yaml)" ] || [ "$(get .pre-commit-config.yaml)" != "$(get template/.pre-commit-config.yaml)" ]; then
+    echo "drift: the $hook $key differs between the root and template pre-commit configs"; status=1
+  fi
+done
 # Action SHAs and hook revisions must agree across root, template/ and overlays/.
 "$STANDARD_ROOT/scripts/sync-pins.sh" --check || status=1
 exit "$status"

@@ -67,12 +67,26 @@ repos:
         language: pygrep
         entry: '(?i)^\s*co-authored-by:[^<]*<[^>]*(@anthropic\.com|@openai\.com|@cursor\.com|\+copilot@users\.noreply\.github\.com|devin-ai-integration|gemini-code-assist|chatgpt)|^[^A-Za-z0-9]*generated (with|by) \[?(claude|anthropic|copilot|openai|chatgpt|codex|gemini|cursor|devin)[^],.;:!?]*\]?(\([^)]*\))?\s*$'
         stages: [commit-msg]
+      # Code and config are ASCII. Prose, translations, and data files in
+      # locale, fixture and testdata folders may use Unicode text, but no
+      # file may hide characters (next hook). Code in those folders is
+      # still checked.
       - id: ascii-only
         name: source files are plain ASCII
         language: pygrep
         entry: "[^\\x00-\\x7F]"
         types: [text]
-        exclude: ^CHANGELOG\.md$
+        exclude: (?i)(^CHANGELOG\.md$|\.(md|mdx|rst|po|pot|xlf|xliff|csv|tsv)$|(^|/)(locales?|i18n|translations|fixtures|testdata)/(.+/)?[^/]+\.(json|ya?ml|toml|txt|xml|properties|strings|ftl|arb)$)
+      # Bidirectional overrides and isolates make text read differently from
+      # how it runs (CVE-2021-42574); zero-width spaces and invisible
+      # operators hide content. Banned in every file. Joiners (ZWJ, ZWNJ),
+      # direction marks (LRM, RLM, ALM) and a byte order mark stay allowed:
+      # languages and tools need them, and they cannot reorder text.
+      - id: no-invisible-unicode
+        name: no bidirectional or invisible Unicode characters
+        language: pygrep
+        entry: "\\xe2\\x80[\\x8b\\xaa-\\xae]|\\xe2\\x81[\\xa0-\\xa4\\xa6-\\xa9]"
+        types: [text]
   # Documentation: prose style, links, page rules (see STANDARD.md section 15)
   - repo: https://github.com/errata-ai/vale
     rev: e2d4374b1c66c8a1dd6d912bebc135040d8833fa  # frozen: v3.26.0
