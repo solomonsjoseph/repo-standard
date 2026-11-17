@@ -66,12 +66,11 @@ if [ -z "$desc" ]; then
   desc="${desc:-$name}"
 fi
 
-# resolve REF: the commit of a git ref of this clone; a bare version 1.4.0
-# means tag v1.4.0. Later git commands get the commit, never REF:path, which
-# Git Bash would rewrite as a Windows path when REF has a slash.
+# resolve REF: the commit of a git ref of this clone. Later git commands get
+# the commit, never REF:path, which Git Bash would rewrite as a Windows path
+# when REF has a slash.
 resolve() {
   local ref="$1"
-  case "$ref" in [0-9]*) ref="v$ref" ;; esac
   git -C "$STANDARD_ROOT" rev-parse --verify --quiet "$ref^{commit}" ||
     die "unknown ref $ref in $STANDARD_ROOT: run 'git fetch --tags', or pass --from/--to with a commit (a version without a release has no tag)"
 }
@@ -83,8 +82,11 @@ if [ -z "$from" ]; then
   from="$(stamp_field "$stamp" standard-version)"
   [ -n "$from" ] || die "$stamp has no standard-version; pass --from REF"
 fi
-case "$from" in [0-9]*) from="v$from" ;; esac
-case "$to" in [0-9]*) to="v$to" ;; esac
+# A bare version (1.4.0) means its tag (v1.4.0); anything else, a short SHA
+# included, is passed to git as it is.
+semver_re='^[0-9]+\.[0-9]+\.[0-9]+$'
+[[ "$from" =~ $semver_re ]] && from="v$from"
+[[ "$to" =~ $semver_re ]] && to="v$to"
 from_sha="$(resolve "$from")"; to_sha="$(resolve "$to")"
 [ "$from_sha" != "$to_sha" ] || { info "already on $to; nothing to do"; exit 0; }
 git -C "$STANDARD_ROOT" merge-base --is-ancestor "$from_sha" "$to_sha" ||
@@ -110,6 +112,9 @@ render() {
   "$src/scripts/apply-overlay.sh" "$out" "$overlay" ${pub[@]+"${pub[@]}"} \
     --owner "$owner" --name "$name" --desc "$desc" >/dev/null
   for a in $addons; do
+    # An add-on newer than the base version: the base render goes without
+    # it, so its files count as added by the update (and match the repo).
+    [ -d "$src/overlays/$a" ] || { echo "note: $a is not in the standard at $ref; rendered without it" >&2; continue; }
     "$src/scripts/apply-overlay.sh" "$out" "$a" --owner "$owner" --name "$name" --desc "$desc" >/dev/null
   done
 }
