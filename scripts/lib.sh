@@ -96,7 +96,7 @@ write_license() {
   local dir="$1" owner="$2" license="$3" year holder
   if [ "$license" = none ]; then
     rm -f "$dir/LICENSE"
-    perl -0pi -e 's/See \[LICENSE\]\(LICENSE\)\./No license: all rights reserved./' "$dir/README.md"
+    perl -0pi -e 's/See \[LICENSE\]\(LICENSE\)\./No license: all rights reserved./; s/^\[!\[License\]\([^\n]*\n//m' "$dir/README.md"
     return
   fi
   info "adding license $license"

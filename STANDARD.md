@@ -151,7 +151,7 @@ Every repository has this skeleton. Language overlays add their own layout on
 top (section 11).
 
 ```text
-README.md                 what it is, quick start, usage, development, contributing, license
+README.md                 what it is, badges, installation, quick start, usage, development, contributing, license
 LICENSE                   chosen per repo
 CHANGELOG.md              written by release-please, never by hand
 CONTRIBUTING.md           how to propose and land a change (this standard, short form)
@@ -159,6 +159,7 @@ SECURITY.md               how to report a vulnerability privately
 CODE_OF_CONDUCT.md        adopts Contributor Covenant 2.1
 AGENTS.md                 instructions for coding agents; CLAUDE.md points here
 .editorconfig  .gitattributes  .gitignore
+.git-blame-ignore-revs    formatting-only commits that blame skips
 .pre-commit-config.yaml   local hooks, also run in CI
 release-please-config.json  .release-please-manifest.json
 .github/
@@ -239,6 +240,9 @@ Format (Conventional Commits 1.0, Angular conventions):
   the approach and any trade-offs. "Fix bug" is never enough.
 - Breaking change: `!` after the type or scope, plus a `BREAKING CHANGE:`
   footer describing the migration.
+- A formatting-only change (a formatter run across many files) is its own
+  pull request. After it merges, add the squash commit's full SHA to
+  `.git-blame-ignore-revs`, so blame keeps each line's real author.
 - One logical change per commit. Commits are signed with SSH when the
   owner's private config sets `SIGNING_KEY` (the key must also be added on
   GitHub as a signing key); the ruleset does not require signatures yet.
@@ -437,8 +441,10 @@ Commits and PRs follow Google's CL description guidance: a first line that
 stands alone, then the problem, the approach, and its limits.
 
 Docs follow the Google developer documentation style guide; section 15 has
-the full documentation rules. Every README has: what it is, quick start,
-usage, development, contributing, license.
+the full documentation rules. Every README has: what it is, installation,
+quick start, usage, development, contributing, license. Public repositories
+show CI, release and license badges under the title; private ones show the
+CI badge only, because the badge services cannot read them.
 
 Final design decisions get an ADR in `docs/dev/adr/` (context, decision,
 consequences). Code follows the language style guide in section 11, enforced

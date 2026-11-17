@@ -1,0 +1,6 @@
+# Commits that only reformat code (a formatter or linter fix run across many
+# files). GitHub's blame view skips them, so each line keeps its real author.
+# Add the full SHA of the squash commit on main after it merges, with a
+# comment that says what it did. To skip them in local blame too, run once
+# per clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs

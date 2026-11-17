@@ -2,7 +2,17 @@
 # __REPO_NAME__
 <!-- vale Google.Headings = YES -->
 
+[![CI](https://github.com/__OWNER__/__REPO_NAME__/actions/workflows/ci.yml/badge.svg)](https://github.com/__OWNER__/__REPO_NAME__/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/__OWNER__/__REPO_NAME__)](https://github.com/__OWNER__/__REPO_NAME__/releases)
+[![License](https://img.shields.io/github/license/__OWNER__/__REPO_NAME__)](LICENSE)
+
 __DESCRIPTION__
+
+## Installation
+
+Say how to install a release (for example from the package registry or the
+[releases page](https://github.com/__OWNER__/__REPO_NAME__/releases)), and
+which platforms and language versions are supported.
 
 ## Quick start
 

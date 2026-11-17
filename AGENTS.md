@@ -42,6 +42,8 @@ every rule an agent needs is repeated here, so the link is background.
   the `pr-title` check reject them. The repository states once, in
   `CONTRIBUTING.md`, that it is developed with AI coding agents.
 - Never edit `CHANGELOG.md`; release-please writes it.
+- A formatting-only change is its own pull request; after it merges, add
+  its commit SHA to `.git-blame-ignore-revs`.
 
 ## Files and content
 

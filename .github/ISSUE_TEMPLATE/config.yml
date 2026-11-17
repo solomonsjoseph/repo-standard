@@ -3,3 +3,6 @@ contact_links:
   - name: Report a security vulnerability
     url: https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability
     about: Report vulnerabilities privately through the Security tab, never in a public issue.
+  - name: Questions and help
+    url: https://github.com/solomonsjoseph/repo-standard/blob/main/SUPPORT.md
+    about: Where to ask a question or propose an idea.
