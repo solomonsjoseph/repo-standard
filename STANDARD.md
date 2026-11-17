@@ -9,8 +9,8 @@ guidance, DORA research, and the OpenSSF security baselines, sized for a
 solo maintainer.
 
 The standard is released like any other repository: release-please sets the
-version above, tags `vX.Y.Z`, and lists every change in `CHANGELOG.md`
-(created by the first release). [ADR 0002](docs/dev/adr/0002-version-the-standard.md)
+version above, tags `vX.Y.Z`, and lists the features and fixes of each
+release, with their dates, in `CHANGELOG.md` (created by the first release). [ADR 0002](docs/dev/adr/0002-version-the-standard.md)
 defines what counts as a major, minor, or patch change.
 
 Words in capitals (MUST, SHOULD, MAY) follow RFC 2119.

@@ -29,30 +29,38 @@ code.
 repo-standard is released like the repositories it governs. release-please
 reads the Conventional Commits on `main`, keeps one release PR open, and on
 merge tags `vX.Y.Z`, writes `CHANGELOG.md`, and rewrites the version line in
-STANDARD.md through a generic `extra-files` entry. The manifest starts at
-1.3.0, the version STANDARD.md stated when this decision was made, and
-`bootstrap-sha` keeps earlier history out of the first changelog.
+STANDARD.md through a generic `extra-files` entry (the `simple` release
+type also keeps a root `version.txt`). The manifest starts at 1.3.0, the
+version STANDARD.md stated when this decision was made, which took effect
+with the Windows support merge (#18, 2026-11-17). `bootstrap-sha` points
+there and keeps earlier history out of the first changelog. Tagging that
+commit `v1.3.0` lets tools compare against 1.3.0 too.
 
 A change is versioned by its effect on a repository that already follows the
 standard:
 
-- **Major** (`feat!` or `BREAKING CHANGE:`): an existing, compliant
+- **Major** (any type with `!`, such as `feat!` or `fix!`, or a
+  `BREAKING CHANGE:` footer): an existing, compliant
   repository fails a required check, or must change files or settings by
   hand, after updating. Examples: a new required CI job, a stricter hook that
   rejects existing content, a renamed or removed script option.
 - **Minor** (`feat`): something new that a repository can adopt or that only
   applies to new repositories: a new overlay or add-on, a new optional check,
   a new script, a new recommended practice.
-- **Patch** (`fix`): a correction that keeps behavior for compliant
-  repositories: a bug fix in a script, a corrected statement, a pin update.
+- **Patch** (`fix`, `perf`, `revert`): a correction that keeps behavior for
+  compliant repositories: a bug fix in a script, a corrected statement, a pin
+  update.
 
-Documentation-only changes (`docs`) do not release on their own; they ship
-with the next release that does.
+STANDARD.md is the product, so a change to one of its rules is `feat` (a new
+or stricter rule) or `fix` (a corrected one), never `docs`. Changes of the
+other types (`docs` for wording, `refactor`, `test`, `build`, `ci`, `chore`)
+do not release on their own and are left out of the changelog.
 
 ## Consequences
 
-- Every repository can record the version it follows, and later tooling can
-  compare a repository against the version it claims.
+- A repository can record the version it follows (the stamp, a separate
+  change), and tooling can compare a repository against the version it
+  claims.
 - The changelog is the upgrade guide. A major release's `BREAKING CHANGE:`
   footer must say what a repository has to do.
 - Tags only appear once the release App is installed on repo-standard and its
