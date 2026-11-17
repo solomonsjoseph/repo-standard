@@ -11,4 +11,7 @@
 | Build | `pnpm run build` |
 
 Add dependencies with `pnpm add` so `pnpm-lock.yaml` stays in sync; CI
-installs with `pnpm install --frozen-lockfile`.
+installs with `pnpm install --frozen-lockfile`. TypeScript stays on 6.0.x
+(`~6.0.0`, and Dependabot ignores newer versions) until typescript-eslint
+supports a newer one; do not upgrade it on its own. `tsconfig.json`
+type-checks sources, tests and config; `tsconfig.build.json` builds `src/`.

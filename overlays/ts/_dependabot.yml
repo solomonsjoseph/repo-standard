@@ -9,6 +9,11 @@
       prefix-development: chore
       include: scope
     labels: [dependencies]
+    # typescript-eslint 8 supports TypeScript below 6.1 only; drop this when
+    # it supports the newer version.
+    ignore:
+      - dependency-name: typescript
+        versions: [">=6.1"]
     # One PR per group, so a week of bumps is one patch release, not many.
     groups:
       production:
