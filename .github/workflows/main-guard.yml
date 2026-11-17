@@ -64,6 +64,7 @@ jobs:
           }
           # The association can lag the push by a few seconds: check once,
           # wait once, and check again only what was missing.
+          # shellcheck disable=SC2086  # one SHA per word
           missing="$(unmerged $shas)"
           if [ -n "$missing" ]; then
             sleep 20
