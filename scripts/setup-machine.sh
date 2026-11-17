@@ -66,9 +66,14 @@ fi
 info "Claude Code identity hook"
 settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
 mkdir -p "$(dirname "$settings")"
-# The full path of this bash: on Windows a bare `bash` can resolve to WSL's
-# bash.exe, which cannot run a C:/ path or the Windows python3 and gh.
-bash_bin="$BASH"; [ -f "$bash_bin.exe" ] && bash_bin="$bash_bin.exe"
+# A full path to bash: on Windows a bare `bash` can resolve to WSL's
+# bash.exe, which cannot run a C:/ path or the Windows python3 and gh. Git
+# for Windows' bin\bash.exe is the wrapper that puts /usr/bin (sed, perl,
+# tr) on PATH; usr\bin\bash.exe started from Windows does not.
+bash_bin="$BASH"
+if command -v cygpath >/dev/null && [ -f "$(cygpath -m /)/bin/bash.exe" ]; then
+  bash_bin="$(cygpath -m /)/bin/bash.exe"
+fi
 hook_cmd="\"$(native_path "$bash_bin")\" \"$(native_path "$STANDARD_ROOT/scripts/claude-hooks/git-identity-switch.sh")\""
 SETTINGS="$settings" HOOK_CMD="$hook_cmd" python3 - <<'PY'
 import json, os, shutil
