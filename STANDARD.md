@@ -311,15 +311,20 @@ ruleset, and none of them is a security boundary:
 - Tests are deterministic: fixed seeds, no network, no dependence on the
   clock or on test order. A flaky test is a bug, never a retry.
 - Coverage: in the python and ts overlays new repos fail under 80 percent;
-  go, r, and swift report coverage only. Retrofitted repos set their current
-  coverage as the floor, and the floor only rises.
-- python runs pytest in strict mode (`--strict-markers`, `--strict-config`,
-  `xfail_strict`), so a typo in a marker or a test that starts passing
-  fails the run.
+  go prints its total in CI, and r and swift collect coverage without a
+  floor. Retrofitted repos set their current coverage as the floor, and the
+  floor only rises.
+- Never lower a coverage floor, skip a test, or mark it as expected to fail
+  to make a check pass.
+- python runs pytest 9 in strict mode (`strict = true`), so a typo in a
+  marker, an unknown config key, or an expected failure that starts
+  passing fails the run.
 - Parsers, serializers and data transforms get property-based tests:
-  Hypothesis (python), fast-check (ts), `testing/quick` or fuzz targets
-  (go). Go fuzz targets keep their corpus in `testdata/fuzz/`, which
-  `go test` runs as ordinary regression tests.
+  Hypothesis (python) or fast-check (ts), added as a dev dependency with the
+  first such test, and native fuzz targets (go). They run deterministically
+  in CI: Hypothesis with `derandomize=True` and `deadline=None`, fast-check
+  with a fixed `seed`. Go fuzz targets keep their corpus in
+  `testdata/fuzz/`, which `go test` runs as ordinary regression tests.
 - Test data is synthetic; the `sensitive-data` add-on (section 11) adds the
   rules for repos that handle personal data.
 
