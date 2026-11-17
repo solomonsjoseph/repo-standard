@@ -261,7 +261,8 @@ cannot approve their own PR. They are switched on the day a second
 maintainer joins.
 
 Private repos owned by a personal account on the Free plan have no rulesets
-and no branch protection, and GitHub sells neither to personal accounts.
+and no branch protection; GitHub Pro ($4 a month) adds both for private
+repos.
 There the same gate holds through CI, local hooks and the process rules, and
 Claude never pushes directly to `main`.
 
@@ -291,9 +292,10 @@ before merging any of them: merging the release PR is a release.
 - Retrofitted repos set `bootstrap-sha` so older, non-conventional history is
   ignored.
 - Public repos that publish packages or binaries add build provenance with
-  `actions/attest` (artifact attestations are not available for private
-  repos on the Free plan). Repos that ship binaries or container images also
-  publish an SBOM; packages installed from a registry do not need one.
+  `actions/attest` (on the Free, Pro and Team plans, artifact attestations
+  work for public repos only). Repos that ship binaries or container images,
+  or packages that bundle or vendor their dependencies, also publish an SBOM;
+  other packages installed from a registry do not need one.
 
 ## 9. Security and supply chain
 
@@ -320,10 +322,11 @@ before merging any of them: merging the release PR is a release.
   above SHA pinning; the standard does not adopt them yet, because their
   availability for personal accounts is unclear and enforcing them on
   private repos needs a Team or Enterprise plan.
-- Private repos on the Free plan have no rulesets, branch protection, secret
-  scanning, push protection, CodeQL, dependency review, private
-  vulnerability reporting, or artifact attestations, and personal accounts
-  cannot buy them. Dependabot alerts and updates do work there. The gitleaks
+- Private repos on the Free plan have no rulesets or branch protection
+  (GitHub Pro adds both), and no secret scanning, push protection, CodeQL,
+  dependency review, private vulnerability reporting, or artifact
+  attestations, which personal accounts cannot buy for private repos on any
+  plan. Dependabot alerts and updates do work there. The gitleaks
   scan in `ci`, local hooks, and the process rules are the gate.
 - GitHub Actions hardening:
   - every action pinned to a full commit SHA with a version comment;
@@ -355,7 +358,7 @@ by its linters and formatters, never by review comments alone.
 | python | `src/<pkg>/`, `tests/`, `pyproject.toml` | uv, ruff (lint, format), mypy, pytest, coverage | Google Python style guide | python |
 | ts | `src/`, `tests/` (pnpm workspace monorepos: planned for v2) | pnpm, eslint, prettier, tsc, vitest | Google TypeScript style guide | node |
 | go | `cmd/<app>/`, `internal/`, `pkg/` only for public API | gofmt, go vet, golangci-lint, go test -race | Effective Go, Google Go style guide | go |
-| r | package: `R/`, `tests/testthat/`, `DESCRIPTION` | lintr, styler or Air, testthat (renv not yet in the overlay) | tidyverse style guide | r |
+| r | package: `R/`, `tests/testthat/`, `DESCRIPTION` | lintr, styler, testthat (renv not yet in the overlay) | tidyverse style guide | r |
 | swift | SwiftPM: `Sources/`, `Tests/`, `Package.swift` | swift-format, SwiftLint, swift test | Google Swift style guide | simple |
 | docs | `docs/` (Diataxis) | Vale, markdownlint, lychee (all in base); Starlight for a site | Google developer docs style guide | simple |
 | api-http (add-on) | `api/openapi.yaml` | Redocly CLI lint | OpenAPI 3.1 | n/a |

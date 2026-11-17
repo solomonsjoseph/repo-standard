@@ -1,7 +1,7 @@
 # Fails on PRs that add dependencies with known high-severity
-# vulnerabilities, and comments the summary on the PR (hence
-# pull-requests: write). Public repos only: GitHub offers dependency review
-# for public repos on the Free plan. Not a required check, so a failure is a
+# vulnerabilities, and comments the summary on the PR when it fails (hence
+# pull-requests: write). Public repos only: for personal accounts GitHub
+# offers dependency review on public repos alone, on every plan. Not a required check, so a failure is a
 # signal to act on, not a merge block.
 name: dependency-review
 
