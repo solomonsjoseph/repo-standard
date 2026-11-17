@@ -3,7 +3,7 @@
     schedule:
       interval: weekly
     cooldown:
-      default-days: 5
+      default-days: 7
     commit-message:
       prefix: fix
       prefix-development: chore

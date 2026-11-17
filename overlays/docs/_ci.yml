@@ -16,6 +16,7 @@ jobs:
   hooks:
     name: hooks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     env:
@@ -62,6 +63,7 @@ jobs:
   secrets:
     name: secrets
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       # gitleaks-action lists the PR's commits through the API.
@@ -86,6 +88,7 @@ jobs:
     if: always()
     needs: [hooks, secrets]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions: {}
     steps:
       - name: Check that every needed job succeeded

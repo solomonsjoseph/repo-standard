@@ -3,7 +3,7 @@
     schedule:
       interval: weekly
     cooldown:
-      default-days: 5
+      default-days: 7
     # swift has no development dependency type, so every bump is fix(deps).
     commit-message:
       prefix: fix

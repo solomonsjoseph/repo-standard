@@ -341,10 +341,12 @@ before merging any of them: merging the release PR is a release.
 - `SECURITY.md` on every repo, and private vulnerability reporting on every
   public repo (GitHub offers it for public repos only).
 - Dependabot alerts and security updates on. Version updates for every
-  ecosystem in the repo, including `github-actions`, with a 5-day cooldown
+  ecosystem in the repo, including `github-actions`, with a 7-day cooldown
   for non-security updates (GitHub's default has been 3 days since
-  2026-07-14; the standard keeps the longer window). Commit prefixes: `fix(deps)` for production
-  dependencies, `chore(deps-dev)` for development dependencies.
+  2026-07-14; the standard keeps the longer window, the one zizmor checks
+  for). Security updates are never delayed. Commit prefixes: `fix(deps)`
+  for production dependencies, `chore(deps-dev)` for development
+  dependencies.
 - Secret scanning with push protection (public repos; gitleaks covers private
   repos locally and in CI).
 - Public repos: CodeQL (advanced setup), dependency review on PRs, and a
@@ -371,7 +373,12 @@ before merging any of them: merging the release PR is a release.
   - top-level `permissions: {}`, write access granted per job only;
   - never `pull_request_target`;
   - never interpolate `github.event.*` into `run:`; pass it through `env:`;
-  - concurrency groups with `cancel-in-progress` on PR workflows.
+  - concurrency groups with `cancel-in-progress` on PR workflows;
+  - `timeout-minutes` on every job (the default is 6 hours);
+  - GitHub App tokens request only the permissions the job needs
+    (`permission-<name>` inputs);
+  - the `zizmor` hook audits workflows, `dependabot.yml` and the pre-commit
+    config for these and other known mistakes.
 - Coverage: in the python and ts overlays new repos fail under 80 percent;
   go, r, and swift report coverage only. Retrofitted repos set their current
   coverage as the floor.
@@ -402,7 +409,7 @@ by its linters and formatters, never by review comments alone.
 | api-http (add-on) | `api/openapi.yaml` | Redocly CLI lint | OpenAPI 3.1 | n/a |
 | api-events (add-on) | `api/asyncapi.yaml` | AsyncAPI CLI validate | AsyncAPI 3.0 | n/a |
 | sensitive-data (add-on) | `tests/fixtures/synthetic/`, `docs/dev/data-handling.md` | gitleaks identifier rules (`.gitleaks.toml`), `no-data-files` hook, data `.gitignore` entries, Claude Code Read deny rules | 45 CFR 164.514 (Safe Harbor) for test data | n/a |
-| base | none | EditorConfig, shellcheck, yamllint, actionlint, gitleaks, Vale, markdownlint, lychee, check_docs | n/a | simple |
+| base | none | EditorConfig, shellcheck, yamllint, actionlint, zizmor, gitleaks, Vale, markdownlint, lychee, check_docs | n/a | simple |
 
 Jupyter notebooks use the python overlay with nbstripout. Static HTML sites
 use the docs or ts overlay. Swift CI runs on macOS runners, which bill at a
