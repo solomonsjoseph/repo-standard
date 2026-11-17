@@ -251,7 +251,8 @@ delink_standard() {
 
 # Per-repo exclude list: DIR/.github/repo-standard-exclude names standard
 # files, folders (ending in /), hooks (hook:<id>) and .gitignore patterns
-# (gitignore:<pattern>) the repo has chosen not to use. One entry per line;
+# (gitignore:<pattern>) and audit rules (RS-AREA-NN, see
+# docs/reference/audit-rules.md) the repo has chosen not to use. One entry per line;
 # text after # is a comment (the reason).
 EXCLUDE_FILE=.github/repo-standard-exclude
 # excluded DIR ENTRY: true when ENTRY (a path or hook:<id>) is on DIR's list.

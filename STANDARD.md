@@ -457,6 +457,7 @@ project's decisions file:
    .vale/                    # a trailing slash covers the whole folder
    hook:vale
    gitignore:site/
+   RS-DEP-02                 # an audit rule, by its ID
    ```
 
    `apply-overlay.sh` never copies, parks or merges a listed item, so a
