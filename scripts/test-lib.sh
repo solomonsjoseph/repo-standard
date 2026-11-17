@@ -80,7 +80,9 @@ check "stamp: reads a bracketed list" "[ \"\$(stamp_field '$st' addons)\" = '[ap
 check "stamp: a missing key or file is empty" "[ -z \"\$(stamp_field '$st' overlay)\" ] && [ -z \"\$(stamp_field '$work/none.yml' overlay)\" ]"
 set_stamp_field "$st" addons "[api-http, sensitive-data]"; set_stamp_field "$st" overlay python
 check "stamp: replaces a field" "[ \"\$(stamp_field '$st' addons)\" = '[api-http, sensitive-data]' ]"
-check "stamp: keeps CRLF line ends" "[ \"\$(grep '^addons: ' '$st' | wc -c | tr -d ' ')\" = 35 ]"  # 33 characters, CR, LF
+# The four original lines keep their CR (the appended overlay line has none).
+# tr counts bytes the same way everywhere; Git Bash's grep drops the CR.
+check "stamp: keeps CRLF line ends" "[ \"\$(tr -dc '\r' < '$st' | wc -c | tr -d ' ')\" = 4 ]"
 check "stamp: appends a missing field" "[ \"\$(stamp_field '$st' overlay)\" = python ]"
 check "stamp: keeps other lines" "grep -q '^license: mit' '$st' && grep -q '^# header' '$st'"
 printf '{".":"1.4.0"}\n' > "$work/.release-please-manifest.json"
