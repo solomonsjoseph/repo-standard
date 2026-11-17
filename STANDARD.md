@@ -83,8 +83,10 @@ idea
    installation all exist, the release workflow reports "not configured"
    and succeeds.
 
-4. Clone and install hooks (install pre-commit with `uv tool install pre-commit`;
-   versions before 4.7 fail with current npm):
+4. Clone and install hooks. Install pre-commit 4.7 or later with
+   `uv tool install pre-commit`: npm 12 broke node hooks in 4.6.0 and
+   earlier, and 4.7.0 is the first release without the follow-on
+   regressions.
 
    ```bash
    pre-commit install --hook-type pre-commit --hook-type commit-msg
@@ -247,7 +249,7 @@ A PR merges into `main` only when all of these hold:
 | All review conversations resolved | ruleset |
 | AI review done and findings addressed | process rule (Claude runs the code-review skill and posts a summary comment) |
 | Self-review checklist ticked | process rule (PR template) |
-| No open high or critical security alerts | process rule (CodeQL, Dependabot, secret scanning) |
+| No open high or critical security alerts | process rule (Dependabot on every repo; CodeQL and secret scanning on public repos) |
 
 `ci` is one aggregate job that depends on every other CI job, always runs,
 and fails unless each dependency succeeded. Only `ci` and `pr-title` are
@@ -258,7 +260,9 @@ Required approvals and required CODEOWNERS review are off: a solo maintainer
 cannot approve their own PR. They are switched on the day a second
 maintainer joins.
 
-On private repos under the Free plan the ruleset may not be enforceable.
+Private repos owned by a personal account on the Free plan have no rulesets
+and no branch protection; GitHub Pro ($4 a month) adds both for private
+repos.
 There the same gate holds through CI, local hooks and the process rules, and
 Claude never pushes directly to `main`.
 
@@ -287,16 +291,21 @@ before merging any of them: merging the release PR is a release.
   what was deployed.
 - Retrofitted repos set `bootstrap-sha` so older, non-conventional history is
   ignored.
-- Repos that publish packages or binaries add artifact attestations (or
-  signed releases) and an SBOM.
+- Public repos that publish packages or binaries add build provenance with
+  `actions/attest` (on the Free, Pro and Team plans, artifact attestations
+  work for public repos only). Repos that ship binaries or container images,
+  or packages that bundle or vendor their dependencies, also publish an SBOM;
+  other packages installed from a registry do not need one.
 
 ## 9. Security and supply chain
 
 - MFA on every account.
-- `SECURITY.md` and private vulnerability reporting on every repo.
+- `SECURITY.md` on every repo, and private vulnerability reporting on every
+  public repo (GitHub offers it for public repos only).
 - Dependabot alerts and security updates on. Version updates for every
   ecosystem in the repo, including `github-actions`, with a 5-day cooldown
-  for non-security updates. Commit prefixes: `fix(deps)` for production
+  for non-security updates (GitHub's default has been 3 days since
+  2026-07-14; the standard keeps the longer window). Commit prefixes: `fix(deps)` for production
   dependencies, `chore(deps-dev)` for development dependencies.
 - Secret scanning with push protection (public repos; gitleaks covers private
   repos locally and in CI).
@@ -309,9 +318,16 @@ before merging any of them: merging the release PR is a release.
   and caches hook environments; SwiftLint is a pinned release with a
   checksum. Known exception: the lychee hook downloads `cargo-binstall`
   unpinned when its environment is first built (cached afterwards).
-- Private repos on the Free plan have no rulesets and no GitHub secret
-  scanning (rulesets are public-only on Free). There the gitleaks scan in
-  `ci`, local hooks, and the process rules are the gate.
+  GitHub now ranks workflow lockfiles (`.github/workflows/actions.lock`)
+  above SHA pinning; the standard does not adopt them yet, because their
+  availability for personal accounts is unclear and enforcing them on
+  private repos needs a Team or Enterprise plan.
+- Private repos on the Free plan have no rulesets or branch protection
+  (GitHub Pro adds both), and no secret scanning, push protection, CodeQL,
+  dependency review, private vulnerability reporting, or artifact
+  attestations, which personal accounts cannot buy for private repos on any
+  plan. Dependabot alerts and updates do work there. The gitleaks
+  scan in `ci`, local hooks, and the process rules are the gate.
 - GitHub Actions hardening:
   - every action pinned to a full commit SHA with a version comment;
   - top-level `permissions: {}`, write access granted per job only;
@@ -342,7 +358,7 @@ by its linters and formatters, never by review comments alone.
 | python | `src/<pkg>/`, `tests/`, `pyproject.toml` | uv, ruff (lint, format), mypy, pytest, coverage | Google Python style guide | python |
 | ts | `src/`, `tests/` (pnpm workspace monorepos: planned for v2) | pnpm, eslint, prettier, tsc, vitest | Google TypeScript style guide | node |
 | go | `cmd/<app>/`, `internal/`, `pkg/` only for public API | gofmt, go vet, golangci-lint, go test -race | Effective Go, Google Go style guide | go |
-| r | package: `R/`, `tests/testthat/`, `DESCRIPTION` | lintr, styler, testthat, renv | tidyverse style guide | r |
+| r | package: `R/`, `tests/testthat/`, `DESCRIPTION` | lintr, styler, testthat (renv not yet in the overlay) | tidyverse style guide | r |
 | swift | SwiftPM: `Sources/`, `Tests/`, `Package.swift` | swift-format, SwiftLint, swift test | Google Swift style guide | simple |
 | docs | `docs/` (Diataxis) | Vale, markdownlint, lychee (all in base); Starlight for a site | Google developer docs style guide | simple |
 | api-http (add-on) | `api/openapi.yaml` | Redocly CLI lint | OpenAPI 3.1 | n/a |
@@ -532,11 +548,14 @@ The `hooks` job, which the `ci` aggregate requires, runs:
   | Overlay | Site tool | Why |
   |---|---|---|
   | ts, docs, go, swift | Starlight (Astro) | Cloudflare's developer docs run on it; built-in sidebar, search, and MDX. Go links to pkg.go.dev and Swift to its DocC output for the API reference. |
-  | python | Sphinx with MyST Markdown and Furo | Generates the Python API reference natively (autodoc2). Material for MkDocs reported the end of its maintenance period in November 2026 and its successor, Zensical, is still early; check both before choosing them. |
+  | python | Sphinx with MyST Markdown and Furo | Generates the Python API reference natively (autodoc2). Material for MkDocs is in maintenance mode and reaches end of life on 2027-05-05; its successor, Zensical, entered a three-month beta with 0.1.0 on 2026-11-05. Neither is a choice for a new site yet. |
   | r | Starlight for guides, pkgdown for the function reference | pkgdown is the R standard for reference pages from roxygen2. |
 
-  Starlight reads pages from `src/content/docs/` by default; mapping it to
-  `docs/` is decided when the first site is scaffolded (unverified).
+  Starlight reads pages from `src/content/docs/`, and its docs loader has no
+  option to change that. A custom content loader pointed at `docs/` mostly
+  works, but last-updated dates and generated sidebars are known gaps. This
+  is an open decision for the first site: a custom loader, or a build step
+  that copies `docs/` into `src/content/docs/`.
   Site scaffolding, the Pages deploy workflow, and reference generation are
   built when the first repo opts in, not before. Until then an API repo has
   a linted spec but no generated reference pages.
