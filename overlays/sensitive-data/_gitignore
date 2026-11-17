@@ -1,6 +1,7 @@
-# sensitive-data add-on: data and analysis caches stay out of git. The
-# folders are the repository-root ones, so a package's own data/ folder (an R
-# package's data/, src/pkg/data/) is not hidden.
+# sensitive-data add-on: data and analysis caches stay out of git. The root
+# data/ folder is reserved for real data; nested data/ folders (src/pkg/data/)
+# are not hidden. R package datasets (data/*.rda) are not shipped from these
+# repositories; synthetic examples go in tests/fixtures/synthetic/.
 /data/
 /raw/
 /_targets/

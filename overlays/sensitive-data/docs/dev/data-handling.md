@@ -37,6 +37,11 @@ schemas and synthetic test data only.
   and letters (`SYN-TEST-A`), and birth years only. The gitleaks rules scan
   the fixtures too and reject anything that looks real.
 
+An R package in this repository does not ship datasets in `data/`: the
+root `data/` folder is reserved for real data and is gitignored, and the
+`no-data-files` hook blocks `.rda` files. Build examples from the synthetic
+fixtures instead.
+
 ## What the checks enforce
 
 | Check | Where | What it catches |
