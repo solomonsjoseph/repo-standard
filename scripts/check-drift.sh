@@ -2,7 +2,8 @@
 # Usage: check-drift.sh   (run from anywhere; used as a repo-standard hook)
 # repo-standard follows its own standard, so several root files are copies of
 # template/ files. This fails when a copy drifts, and when the plan-file name
-# rule in scripts/lib.sh no longer matches the no-scratch-files hook.
+# rule in scripts/lib.sh no longer matches the no-scratch-files hook, and when
+# an action or hook is pinned to different commits in different files.
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 cd "$STANDARD_ROOT" || exit 1
@@ -32,4 +33,6 @@ ai_body="$(sed -n "s/^ *pattern='\(.*\)'\$/\1/p" template/.github/workflows/pr-t
 if [ -z "$ai_root" ] || [ "$ai_root" != "$(ai_re template/.pre-commit-config.yaml)" ] || [ "$ai_root" != "$ai_body" ]; then
   echo "drift: the AI attribution pattern differs between the pre-commit configs and pr-title.yml"; status=1
 fi
+# Action SHAs and hook revisions must agree across root, template/ and overlays/.
+"$STANDARD_ROOT/scripts/sync-pins.sh" --check || status=1
 exit "$status"

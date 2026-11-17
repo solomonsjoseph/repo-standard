@@ -87,10 +87,14 @@ pre-commit run --all-files
 | Check a machine | `scripts/doctor.sh` |
 | Test the shell helpers | `scripts/test-lib.sh` |
 | Check root copies against `template/` | `scripts/check-drift.sh` |
+| Copy pins after a Dependabot update | `scripts/sync-pins.sh` |
 | Lint the scripts | `shellcheck --external-sources --source-path=SCRIPTDIR scripts/*.sh` |
 
 - Root files listed in `scripts/check-drift.sh` are copies of `template/`
   files: change both in the same pull request.
+- Dependabot updates action and hook pins in the root files only. On its
+  pull requests, run `scripts/sync-pins.sh` and push the result, or the
+  drift check fails.
 - `template/` and `overlays/` hold placeholders (`__OWNER__`,
   `__REPO_NAME__`, `__PKG__`, `__DESCRIPTION__`) that the scripts fill in;
   never replace them by hand.

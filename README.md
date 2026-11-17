@@ -35,6 +35,7 @@ OpenSSF Baseline control each one covers.
 | `scripts/audit.sh` | Reports pass, fail, or not applicable for every rule (read-only) |
 | `scripts/sync.sh` | Publishes `repo-template`, `.github` defaults, or a `repo-standard` copy to an account through PRs |
 | `scripts/enable-private-reporting.sh` | Turns on private vulnerability reporting for an account's public repos |
+| `scripts/sync-pins.sh` | Copies the root action and hook pins (which Dependabot updates) into `template/` and `overlays/`; `--latest` refreshes pins only they use |
 | `scripts/check-drift.sh` | Checks that this repo's copies of template files have not drifted (a hook) |
 | `scripts/setup-machine.sh` | One-time machine setup: the pre-push guard as a git template hook and the identity hook for Claude Code |
 | `scripts/doctor.sh` | Checks that this machine can run the scripts: tools, versions, private config, gh logins, Windows settings (read-only) |
