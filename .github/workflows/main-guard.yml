@@ -54,6 +54,8 @@ jobs:
           # unmerged SHA...: the SHAs that are not the merge (squash) commit
           # of a merged pull request into main. A commit that only belongs to
           # a pull request's branch does not count.
+          # This assumes squash merges only (apply-settings.sh turns the other
+          # methods off); a merge-commit or rebase merge would be reported.
           unmerged() {
             local sha n
             for sha in "$@"; do
