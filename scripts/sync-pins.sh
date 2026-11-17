@@ -38,9 +38,11 @@ files="$(git ls-files -- '.github/workflows/*.yml' '.pre-commit-config.yaml' \
 # The pin table: one line per pin, "KIND KEY SHA COMMENT FILE", where KIND is
 # action (KEY owner/repo) or hook (KEY the repo URL), and COMMENT is the tag
 # comment or "-".
+# Python on Windows ends lines with CRLF; tr keeps the last field (the file
+# name) clean.
 table() {
   # shellcheck disable=SC2086
-  python3 - $files <<'PY'
+  python3 - $files <<'PY' | tr -d '\r'
 import re, sys
 for path in sys.argv[1:]:
     lines = open(path, encoding="utf-8").read().split("\n")
@@ -81,6 +83,8 @@ targets="$(printf '%s\n' "$root_pins" | awk 'NF { k = $1 " " $2; if (!(k in s)) 
 if [ "$mode" = latest ]; then
   if [ -z "$as" ]; then slug="$(origin_slug "$STANDARD_ROOT")"; as="${slug%%/*}"; fi
   [ -n "$as" ] || die "no GitHub origin remote: pass --as LOGIN"
+  # Check the login once: inside the loop a failed call reads as "no release".
+  gh auth token --user "$as" >/dev/null 2>&1 || die "no gh login for $as; pass --as LOGIN, or run: gh auth login"
   cutoff="$(python3 -c 'import datetime as d; print((d.datetime.now(d.timezone.utc) - d.timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ"))')"
   # latest_release OWNER/REPO: "SHA TAG" of the newest non-draft,
   # non-prerelease release published before the cutoff.
