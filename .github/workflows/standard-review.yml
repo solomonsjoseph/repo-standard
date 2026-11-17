@@ -1,0 +1,46 @@
+# Opens one review issue at the start of each month, listing the groups of
+# outside sources in docs/dev/sources.md that are due (repo-standard only,
+# not part of the template). A manual rerun in the same month opens nothing;
+# an older review issue that is still open does not stop this month's, so the
+# quarterly and yearly groups are never skipped.
+name: standard-review
+
+on:
+  schedule:
+    - cron: "17 6 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  open-issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open the review issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          month="$(date -u +%m)"
+          due="monthly"
+          case "$month" in 01|04|07|10) due="$due, quarterly" ;; esac
+          case "$month" in 01|07) due="$due, twice a year" ;; esac
+          [ "$month" = 01 ] && due="$due, yearly"
+          title="Review the standard's sources: $(date -u +%Y-%m)"
+          if gh issue list --state all --search "in:title \"$title\"" --json title --jq '.[].title' | grep -qxF "$title"; then
+            echo "this month's review issue already exists; nothing to do"
+            exit 0
+          fi
+          gh issue create --title "$title" --body "$(cat <<EOF
+          Groups due this month: **$due**.
+
+          Recheck each source in those groups of
+          [docs/dev/sources.md](https://github.com/$GH_REPO/blob/main/docs/dev/sources.md). For every
+          change the standard needs, open one issue that links the source.
+          Close this issue with a one-line summary per group, even when
+          nothing changed.
+          EOF
+          )"
