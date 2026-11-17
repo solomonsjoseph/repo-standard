@@ -344,16 +344,21 @@ before merging any of them: merging the release PR is a release.
   ecosystem in the repo, including `github-actions`, with a 7-day cooldown
   for non-security updates (GitHub's default has been 3 days since
   2026-07-14; the standard keeps the longer window, the one zizmor checks
-  for). Security updates are never delayed. Commit prefixes: `fix(deps)`
+  for). Dependabot never delays a security update; when the resolver
+  cooldown below blocks one, the exception goes in the same pull request.
+  Commit prefixes: `fix(deps)`
   for production dependencies, `chore(deps-dev)` for development
   dependencies.
 - The package managers apply the same 7-day cooldown when they resolve:
   `exclude-newer = "1 week"` under `[tool.uv]` (python overlay) and
-  `minimumReleaseAge: 10080` in `pnpm-workspace.yaml` (ts overlay), where
-  `allowBuilds` also lists every dependency allowed to run install
-  scripts. A security fix younger than a week needs a per-package
-  exception (`exclude-newer-package` or `minimumReleaseAgeExclude`) in the
-  same pull request.
+  `minimumReleaseAge: 10080` in `pnpm-workspace.yaml` (ts overlay; a
+  settings file, not a monorepo). There `allowBuilds` decides install
+  scripts: `true` runs a dependency's script, `false` blocks it, and an
+  unlisted dependency with a script fails the install. A security fix
+  younger than a week needs a per-package exception in the same pull
+  request, `exclude-newer-package = { name = false }` for uv or a
+  `minimumReleaseAgeExclude` entry for pnpm, removed once the release is a
+  week old. `audit.sh` checks both settings (RS-DEP-05).
 - Secret scanning with push protection (public repos; gitleaks covers private
   repos locally and in CI).
 - Public repos: CodeQL (advanced setup), dependency review on PRs, and a

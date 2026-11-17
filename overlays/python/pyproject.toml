@@ -18,9 +18,12 @@ packages = ["src/__PKG__"]
 
 [tool.uv]
 # Cooldown (STANDARD.md section 9): resolve only releases at least a week
-# old. A security fix newer than that needs a per-package exception:
-# exclude-newer-package = { name = false }
+# old. A security fix newer than that needs a per-package exception, removed
+# once the release is a week old, for example:
+#   exclude-newer-package = { cryptography = false }
 exclude-newer = "1 week"
+# Relative exclude-newer values need a recent uv (tested with 0.13).
+required-version = ">=0.13"
 
 [tool.ruff]
 line-length = 88
