@@ -24,4 +24,12 @@ hook_re="$(grep -A14 'id: no-scratch-files' template/.pre-commit-config.yaml | s
 [ "$hook_re" = "$SCRATCH_NAME_RE" ] || { echo "drift: SCRATCH_NAME_RE in scripts/lib.sh differs from the no-scratch-files hook"; status=1; }
 hook_ex="$(grep -A14 'id: no-scratch-files' template/.pre-commit-config.yaml | sed -n 's/^ *exclude: (?i)//p')"
 [ "$hook_ex" = "$SCRATCH_EXEMPT_RE" ] || { echo "drift: SCRATCH_EXEMPT_RE in scripts/lib.sh differs from the no-scratch-files hook"; status=1; }
+# The AI attribution pattern lives in both pre-commit configs (commit-msg
+# hook) and in pr-title.yml (PR body check); all three must agree.
+ai_re() { grep -A8 'id: no-ai-attribution' "$1" | sed -n "s/^ *entry: '(?i)\(.*\)'\$/\1/p"; }
+ai_root="$(ai_re .pre-commit-config.yaml)"
+ai_body="$(sed -n "s/^ *pattern='\(.*\)'\$/\1/p" template/.github/workflows/pr-title.yml)"
+if [ -z "$ai_root" ] || [ "$ai_root" != "$(ai_re template/.pre-commit-config.yaml)" ] || [ "$ai_root" != "$ai_body" ]; then
+  echo "drift: the AI attribution pattern differs between the pre-commit configs and pr-title.yml"; status=1
+fi
 exit "$status"
