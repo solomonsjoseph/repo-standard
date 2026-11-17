@@ -304,6 +304,30 @@ ruleset, and none of them is a security boundary:
 | pre-push guard (machine setup) | any push that updates or deletes `main`, including commits the remote already has | skipped with `--no-verify`; only on machines that ran setup |
 | `main-guard.yml` workflow | nothing; it detects after the push | fails the run and opens an issue for each push to `main` without a merged PR, and for force pushes |
 
+### Tests
+
+- Every bug fix adds a regression test that fails without the fix. Every
+  feature ships with its tests in the same PR.
+- Tests are deterministic: fixed seeds, no network, no dependence on the
+  clock or on test order. A flaky test is a bug, never a retry.
+- Coverage: in the python and ts overlays new repos fail under 80 percent;
+  go prints its total in CI, and r and swift collect coverage without a
+  floor. Retrofitted repos set their current coverage as the floor, and the
+  floor only rises.
+- Never lower a coverage floor, skip a test, or mark it as expected to fail
+  to make a check pass.
+- python runs pytest 9 in strict mode (`strict = true`), so a typo in a
+  marker, an unknown config key, or an expected failure that starts
+  passing fails the run.
+- Parsers, serializers and data transforms get property-based tests:
+  Hypothesis (python) or fast-check (ts), added as a dev dependency with the
+  first such test, and native fuzz targets (go). They run deterministically
+  in CI: Hypothesis with `derandomize=True` and `deadline=None`, fast-check
+  with a fixed `seed`. Go fuzz targets keep their corpus in
+  `testdata/fuzz/`, which `go test` runs as ordinary regression tests.
+- Test data is synthetic; the `sensitive-data` add-on (section 11) adds the
+  rules for repos that handle personal data.
+
 ### Bot pull requests
 
 release-please and Dependabot PRs skip the issue-first rule, the checklist,
@@ -398,9 +422,6 @@ before merging any of them: merging the release PR is a release.
     config for injection, permission and pinning mistakes (offline audits
     only, so the hook needs no token); `audit.sh` checks the timeouts
     (RS-CI-06) and the cooldown (RS-DEP-04).
-- Coverage: in the python and ts overlays new repos fail under 80 percent;
-  go, r, and swift report coverage only. Retrofitted repos set their current
-  coverage as the floor.
 
 ## 10. Writing style
 
