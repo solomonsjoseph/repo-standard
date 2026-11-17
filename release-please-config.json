@@ -1,5 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "c1afa4cb814633f436a30c97a01b8edbb07d0c55",
   "release-type": "simple",
   "include-v-in-tag": true,
   "include-component-in-tag": false,
@@ -18,6 +19,8 @@
     { "type": "chore", "section": "Chores", "hidden": true }
   ],
   "packages": {
-    ".": {}
+    ".": {
+      "extra-files": [{ "type": "generic", "path": "STANDARD.md" }]
+    }
   }
 }
