@@ -249,6 +249,13 @@ std_version="$(sed -nE 's/^[[:space:]]*"\.": "([^"]+)".*/\1/p' "$STANDARD_ROOT/.
 st_overlay="$(sed -n 's/^overlay: //p' "$stamp" 2>/dev/null || true)"
 st_addons="$(sed -n 's/^addons: \[\(.*\)\]$/\1/p' "$stamp" 2>/dev/null || true)"
 st_vis="$(sed -n 's/^visibility: //p' "$stamp" 2>/dev/null || true)"
+# A repository that already records a version keeps it: adding an overlay
+# does not bring the files it already has up to date (update-repo.sh does).
+st_version="$(sed -nE 's/^standard-version: *([^ #]+).*/\1/p' "$stamp" 2>/dev/null || true)"
+if [ -n "$st_version" ] && [ "$st_version" != "$std_version" ]; then
+  echo "note: $stamp keeps standard-version $st_version; run scripts/update-repo.sh to move it to $std_version"
+  std_version="$st_version"
+fi
 if [ -f "$src/_release-type" ]; then
   st_overlay="$overlay"
   if [ "$public" = 1 ]; then st_vis=public; else st_vis=private; fi
