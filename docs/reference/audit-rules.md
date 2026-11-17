@@ -117,6 +117,7 @@ RS-CI-05 is a text match. It flags an expression such as
 | RS-DEP-02 | A dependency manifest exists (`pyproject.toml`, `package.json`, `go.mod`, `DESCRIPTION` or `Package.swift`); N/A for the docs overlay | OSPS-QA-02.01 |
 | RS-DEP-03 | No committed binaries or build output | OSPS-QA-05.01, OSPS-QA-05.02 |
 | RS-DEP-04 | Dependabot waits at least 7 days (`cooldown.default-days`) on every ecosystem | |
+| RS-DEP-05 | uv (`exclude-newer`) or pnpm (`minimumReleaseAge`) resolves only releases at least a week old; N/A without either | |
 | RS-REL-01 | release-please tags are plain `vX.Y.Z` | OSPS-BR-02.01 (L2) |
 | RS-REL-02 | `.github/repo-standard.yml` records the standard version | |
 | RS-REL-03 | That version is the current release of the standard | |

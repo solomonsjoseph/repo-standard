@@ -1,0 +1,11 @@
+# pnpm settings (STANDARD.md section 9). A settings file, not a monorepo:
+# there is no packages: list.
+# Cooldown: resolve only releases at least 7 days old (in minutes). A
+# security fix newer than that needs an exception, removed once the release
+# is a week old, for example:
+#   minimumReleaseAgeExclude: [some-package]
+minimumReleaseAge: 10080
+# Install scripts: a dependency listed as true may run its script, false
+# blocks it, and an unlisted dependency with a script fails the install.
+# None of the overlay's dependencies has one.
+allowBuilds: {}

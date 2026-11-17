@@ -205,6 +205,14 @@ print(" ".join(hits))' || true)"
   short="$(sed -nE 's/^ *default-days: *([0-9]+).*/\1/p' "$dir/.github/dependabot.yml" 2>/dev/null | awk '$1 < 7' | head -n 1)"
   chk RS-DEP-04 "Dependabot cooldown of at least 7 days on every ecosystem${short:+ (found $short days)}" \
     "grep -qs 'default-days:' '$dir/.github/dependabot.yml' && [ -z \"\$short\" ]"
+  # The resolver cooldown, where the repository uses uv or pnpm.
+  if [ -f "$dir/uv.lock" ] || grep -qs '^\[tool\.uv\]' "$dir/pyproject.toml"; then
+    chk RS-DEP-05 "uv resolves only releases a week old (exclude-newer)" "grep -qsE '^exclude-newer *=' '$dir/pyproject.toml'"
+  elif [ -f "$dir/pnpm-lock.yaml" ] || [ -f "$dir/pnpm-workspace.yaml" ]; then
+    chk RS-DEP-05 "pnpm resolves only releases a week old (minimumReleaseAge)" "grep -qsE '^minimumReleaseAge: *[0-9]+' '$dir/pnpm-workspace.yaml'"
+  else
+    nap RS-DEP-05 "package manager cooldown (no uv or pnpm project)"
+  fi
   overlay="$(stamp_field "$dir/$STAMP_FILE" overlay)"
   if [ "$overlay" = docs ]; then
     nap RS-DEP-02 "dependency manifest (docs overlay has none)"
