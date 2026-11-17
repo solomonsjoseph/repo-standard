@@ -16,7 +16,12 @@ Check an existing repository (read-only):
 
 ```bash
 scripts/audit.sh OWNER/my-tool ~/path/to/my-tool
+scripts/audit.sh --all OWNER        # one line per repository
 ```
+
+Each rule has an ID such as `RS-CI-02`. The
+[audit rules](docs/reference/audit-rules.md) page lists them with the
+OpenSSF Baseline control each one covers.
 
 ## Usage
 

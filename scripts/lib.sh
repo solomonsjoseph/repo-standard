@@ -251,19 +251,27 @@ delink_standard() {
 
 # Per-repo exclude list: DIR/.github/repo-standard-exclude names standard
 # files, folders (ending in /), hooks (hook:<id>) and .gitignore patterns
-# (gitignore:<pattern>) the repo has chosen not to use. One entry per line;
+# (gitignore:<pattern>) and audit rules (RS-AREA-NN, see
+# docs/reference/audit-rules.md) the repo has chosen not to use. One entry per line;
 # text after # is a comment (the reason).
 EXCLUDE_FILE=.github/repo-standard-exclude
-# excluded DIR ENTRY: true when ENTRY (a path or hook:<id>) is on DIR's list.
-# A folder entry also covers every path inside it.
-excluded() {
-  local list="$1/$EXCLUDE_FILE" entry
-  [ -f "$list" ] || return 1
-  while IFS= read -r entry || [ -n "$entry" ]; do
-    entry="${entry%%#*}"; entry="$(echo "$entry" | tr -d '[:space:]')"
+# exclude_entries FILE|-: the entries of an exclude list (- reads stdin), one
+# per line, without comments or blanks. Read the list once and match with
+# in_excludes.
+exclude_entries() {
+  [ "$1" = - ] || [ -f "$1" ] || return 0
+  sed -e 's/#.*//' -e 's/[[:space:]]//g' "$1" | grep . || true
+}
+# in_excludes ENTRY LIST: true when ENTRY (a path or hook:<id>) is in LIST
+# (from exclude_entries). A folder entry also covers every path inside it.
+in_excludes() {
+  local entry
+  while IFS= read -r entry; do
     [ -n "$entry" ] || continue
-    [ "$2" = "$entry" ] && return 0
-    case "$entry" in */) case "$2" in "$entry"*|"${entry%/}") return 0 ;; esac ;; esac
-  done < "$list"
+    [ "$1" = "$entry" ] && return 0
+    case "$entry" in */) case "$1" in "$entry"*|"${entry%/}") return 0 ;; esac ;; esac
+  done <<< "$2"
   return 1
 }
+# excluded DIR ENTRY: true when ENTRY is on DIR's exclude list.
+excluded() { in_excludes "$2" "$(exclude_entries "$1/$EXCLUDE_FILE")"; }

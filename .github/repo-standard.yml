@@ -1,0 +1,6 @@
+# repo-standard follows its own standard. release-please keeps the version
+# below equal to the release (extra-files in release-please-config.json).
+standard-version: 1.3.0 # x-release-please-version
+overlay: none
+addons: []
+visibility: public

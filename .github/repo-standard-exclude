@@ -1,0 +1,2 @@
+# Parts of the standard this repository does not use (scripts/lib.sh, excluded).
+RS-DEP-02 # shell scripts and templates only: no package, so no dependency manifest

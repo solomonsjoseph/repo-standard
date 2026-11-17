@@ -20,7 +20,10 @@
   ],
   "packages": {
     ".": {
-      "extra-files": [{ "type": "generic", "path": "STANDARD.md" }]
+      "extra-files": [
+        { "type": "generic", "path": "STANDARD.md" },
+        { "type": "generic", "path": ".github/repo-standard.yml" }
+      ]
     }
   }
 }
