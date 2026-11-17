@@ -54,7 +54,7 @@ The audit exits with status 1 when any rule fails.
 | RS-FILE-12 | `.github/pull_request_template.md` | |
 | RS-FILE-13 | `.github/dependabot.yml` | |
 | RS-FILE-14 | `.github/CODEOWNERS` | |
-| RS-FILE-15 | `.github/ISSUE_TEMPLATE/config.yml` | OSPS-DO-02.01 |
+| RS-FILE-15 | `.github/ISSUE_TEMPLATE/config.yml` | OSPS-DO-02.01 (file only) |
 | RS-FILE-16 | `.github/workflows/ci.yml` | OSPS-QA-06.01 (L2) |
 | RS-FILE-17 | `.github/workflows/pr-title.yml` | |
 | RS-FILE-18 | `.github/workflows/release-please.yml` | |

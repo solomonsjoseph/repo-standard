@@ -54,18 +54,33 @@ nap() { row N/A "$1" "$2"; na=$((na + 1)); }
 # chk ID LABEL TEST: PASS when the shell TEST succeeds, else FAIL; N/A when
 # the rule ID is on the repo's exclude list (.github/repo-standard-exclude).
 chk() {
-  if [ "$dir" != - ] && excluded "$dir" "$1"; then nap "$1" "$2 (excluded by the repo)"
+  if in_excludes "$1" "$excludes"; then nap "$1" "$2 (excluded by the repo)"
   elif eval "$3"; then ok "$1" "$2"; else bad "$1" "$2"; fi
 }
 # xchk ID ENTRY LABEL TEST: N/A when ENTRY (path or hook:<id>) is on the
-# repo's exclude list (.github/repo-standard-exclude), else a normal check.
-xchk() { if excluded "$dir" "$2"; then nap "$1" "$3 (excluded by the repo)"; else chk "$1" "$3" "$4"; fi; }
+# repo's exclude list, else a normal check.
+xchk() { if in_excludes "$2" "$excludes"; then nap "$1" "$3 (excluded by the repo)"; else chk "$1" "$3" "$4"; fi; }
+# raw PATH: a file on the repository's default branch, read through the API.
+# Prints nothing when the file is missing or unreadable.
+raw() {
+  local out
+  out="$(api api "repos/$full/contents/$1" -H 'Accept: application/vnd.github.raw' 2>/dev/null)" && printf '%s\n' "$out"
+  return 0
+}
 
 repo_json="$(api api "repos/$full")"
 j() { echo "$repo_json" | jq -r "$1"; }
 private="$(j .private)"
 admin="$(j .permissions.admin)"
 no_license=0
+# Without a local clone the exclude list and README come from GitHub, so
+# --all gives the same answer whether or not a repository is cloned.
+if [ "$dir" = - ]; then
+  excludes="$(raw "$EXCLUDE_FILE" | exclude_entries -)"
+  raw README.md | grep -qs 'No license: all rights reserved' && no_license=1
+else
+  excludes="$(exclude_entries "$dir/$EXCLUDE_FILE")"
+fi
 
 if [ "$dir" = - ]; then
   echo "== files (skipped: no local clone)"
@@ -143,16 +158,26 @@ print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exe
   chk RS-CI-02 "all actions pinned to full SHAs${unpinned:+ (unpinned: $(echo "$unpinned" | tr '\n' ' '))}" "[ -z \"\$unpinned\" ]"
   chk RS-CI-03 "workflows set top-level permissions" "! grep -L '^permissions:' '$wf'/*.yml 2>/dev/null | grep -q ."
   chk RS-CI-04 "no pull_request_target" "! grep -rqs 'pull_request_target' '$wf'"
-  # Untrusted event text inside an expression is only safe as an env value
-  # (KEY: \${{ ... }}); inline in a script it is a code injection.
-  inline="$(grep -rnE '\$\{\{[^}]*(github\.head_ref|github\.event\.(pull_request|issue|comment|review|review_comment|discussion|head_commit|commits|pages)[^}]*(title|body|ref|label|message|name|email|page_name))' "$wf" 2>/dev/null \
-    | grep -vE '^[^:]+:[0-9]+:\s*[A-Za-z_][A-Za-z0-9_]*:\s*"?\$\{\{' | cut -d: -f1,2 | sed "s|$wf/||" | tr '\n' ' ' || true)"
+  # Untrusted event text inside an expression is safe as the whole value of
+  # a key (an env entry, an action input, an if:), but in a run: or script:
+  # body, or on a continuation line of one, it is a code injection.
+  inline="$(WF="$wf" python3 -c '
+import glob, os, re
+event = re.compile(r"\$\{\{[^}]*(github\.head_ref|github\.event\.(pull_request|issue|comment|review|review_comment|discussion|head_commit|commits|pages)[^}]*(title|body|ref|label|message|name|email|page_name))")
+keyed = re.compile(r"^\s*(-\s+)?([A-Za-z_][A-Za-z0-9_-]*):\s*\x22?\$\{\{")
+hits = []
+for path in sorted(glob.glob(os.path.join(os.environ["WF"], "*.y*ml"))):
+    for n, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
+        m = keyed.match(line)
+        if event.search(line) and not (m and m.group(2) not in ("run", "script")):
+            hits.append(os.path.basename(path) + ":" + str(n))
+print(" ".join(hits))' || true)"
   chk RS-CI-05 "untrusted event text reaches scripts only through env${inline:+ (inline: $inline)}" "[ -z \"\$inline\" ]"
 
   echo "== dependencies and releases"
   chk RS-DEP-01 "dependabot covers github-actions and pre-commit" \
     "grep -qs 'package-ecosystem: github-actions' '$dir/.github/dependabot.yml' && grep -qs 'package-ecosystem: pre-commit' '$dir/.github/dependabot.yml'"
-  overlay="$(sed -n 's/^overlay: //p' "$dir/.github/repo-standard.yml" 2>/dev/null || true)"
+  overlay="$(stamp_field "$dir/$STAMP_FILE" overlay)"
   if [ "$overlay" = docs ]; then
     nap RS-DEP-02 "dependency manifest (docs overlay has none)"
   else
@@ -164,8 +189,8 @@ print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exe
   chk RS-DEP-03 "no committed binaries or build output${binaries:+ (found: $binaries)}" "[ -z \"\$binaries\" ]"
   chk RS-REL-01 "release-please tags are plain vX.Y.Z" "grep -qs '\"include-component-in-tag\": false' '$dir/release-please-config.json'"
   # The stamp written by apply-overlay.sh (ADR 0002): which version this repo follows.
-  std_version="$(sed -nE 's/^[[:space:]]*"\.": "([^"]+)".*/\1/p' "$STANDARD_ROOT/.release-please-manifest.json")"
-  repo_version="$(sed -nE 's/^standard-version: *([^ #]+).*/\1/p' "$dir/.github/repo-standard.yml" 2>/dev/null || true)"
+  std_version="$(manifest_version "$STANDARD_ROOT")"
+  repo_version="$(stamp_field "$dir/$STAMP_FILE" standard-version)"
   chk RS-REL-02 "stamped with a standard version (.github/repo-standard.yml${repo_version:+: $repo_version})" "[ -n \"\$repo_version\" ]"
   if [ -n "$repo_version" ]; then
     chk RS-REL-03 "follows the current standard ($std_version)" "[ \"\$repo_version\" = \"\$std_version\" ]"
@@ -191,8 +216,10 @@ hint=""; [ "$default_branch" = main ] || hint=" (now: $default_branch; rename, w
 chk RS-SET-05 "default branch is main$hint" "[ \"$default_branch\" = main ]"
 if [ "$private" = true ]; then
   nap RS-SET-06 "ruleset 'main' (rulesets need a public repo on the Free plan; RS-HOOK-09 and main-guard.yml cover it)"
+  for id in 07 08 09; do nap "RS-SET-$id" "ruleset 'main' rules (no ruleset on a private repo)"; done
   nap RS-SET-10 "secret scanning push protection (paid feature on private repos; gitleaks in CI covers it)"
-  nap RS-SET-11 "public overlay (CodeQL, Scorecard)"
+  nap RS-SET-11 "public overlay: codeql.yml (public repositories only)"
+  nap RS-SET-12 "public overlay: scorecard.yml (public repositories only)"
 else
   rs_id="$(api api "repos/$full/rulesets" --jq '.[] | select(.name=="main") | .id' 2>/dev/null || true)"
   if [ -n "$rs_id" ]; then
@@ -207,7 +234,8 @@ else
       nap RS-SET-09 "ruleset has no bypass actors (needs admin to read)"
     fi
   else
-    bad RS-SET-06 "ruleset 'main' exists"
+    chk RS-SET-06 "ruleset 'main' exists" false
+    for id in 07 08 09; do nap "RS-SET-$id" "ruleset 'main' rules (no ruleset)"; done
   fi
   if [ "$admin" = true ]; then
     chk RS-SET-10 "secret scanning push protection" "[ \"$(j '.security_and_analysis.secret_scanning_push_protection.status')\" = enabled ]"
@@ -215,7 +243,8 @@ else
     nap RS-SET-10 "secret scanning push protection (needs admin to read)"
   fi
   if [ "$dir" = - ]; then
-    nap RS-SET-11 "public overlay files (no local clone)"
+    nap RS-SET-11 "public overlay: codeql.yml (no local clone)"
+    nap RS-SET-12 "public overlay: scorecard.yml (no local clone)"
   else
     xchk RS-SET-11 .github/workflows/codeql.yml "public overlay: codeql.yml" "[ -f '$dir/.github/workflows/codeql.yml' ]"
     xchk RS-SET-12 .github/workflows/scorecard.yml "public overlay: scorecard.yml" "[ -f '$dir/.github/workflows/scorecard.yml' ]"
@@ -226,7 +255,12 @@ if [ "$admin" = true ]; then
 else
   nap RS-SET-13 "Dependabot alerts enabled (needs admin to read)"
 fi
-chk RS-REL-04 "release App client id variable set" "api variable list --repo '$full' 2>/dev/null | grep -q RELEASE_APP_CLIENT_ID"
+# shellcheck disable=SC2034 # read by the chk test string
+if vars="$(api variable list --repo "$full" 2>/dev/null)"; then
+  chk RS-REL-04 "release App client id variable set" "echo \"\$vars\" | grep -q RELEASE_APP_CLIENT_ID"
+else
+  nap RS-REL-04 "release App client id variable set (needs push access to read)"
+fi
 
 echo; echo "result: $pass passed, $fail failed, $na not applicable"
 [ "$fail" -eq 0 ]

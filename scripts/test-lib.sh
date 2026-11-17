@@ -89,6 +89,13 @@ printf '{".":"1.4.0"}\n' > "$work/.release-please-manifest.json"
 check "manifest_version reads compact JSON" "[ \"\$(manifest_version '$work')\" = 1.4.0 ]"
 check "manifest_version reads the repo's manifest" "[ -n \"\$(manifest_version '$STANDARD_ROOT')\" ]"
 
+mkdir -p "$work/ex/.github"
+printf 'RS-DEP-02  # no manifest\r\n\n  docs/dev/ \nhook:vale\n# a comment\n' > "$work/ex/$EXCLUDE_FILE"
+check "excludes: matches a rule ID despite comments and CRLF" "excluded '$work/ex' RS-DEP-02"
+check "excludes: a folder entry covers paths inside it" "excluded '$work/ex' docs/dev/index.md && excluded '$work/ex' docs/dev"
+check "excludes: other entries do not match" "! excluded '$work/ex' docs/index.md && ! excluded '$work/ex' hook:lychee"
+check "excludes: no list means nothing is excluded" "! excluded '$work/plain' RS-DEP-02"
+
 if command -v rsync >/dev/null; then
   # Fresh copies: the symlink test above added to the source after
   # $work/plain was made.
