@@ -73,6 +73,20 @@ else
   echo "skip  symlink test (this platform does not create symlinks)"
 fi
 
+st="$work/stamp.yml"
+printf '# header\r\nstandard-version: "1.3.0"  # pinned\r\naddons: [api-http]\r\nlicense: mit\r\n' > "$st"
+check "stamp: reads a value without quotes, comment or CR" "[ \"\$(stamp_field '$st' standard-version)\" = 1.3.0 ]"
+check "stamp: reads a bracketed list" "[ \"\$(stamp_field '$st' addons)\" = '[api-http]' ]"
+check "stamp: a missing key or file is empty" "[ -z \"\$(stamp_field '$st' overlay)\" ] && [ -z \"\$(stamp_field '$work/none.yml' overlay)\" ]"
+set_stamp_field "$st" addons "[api-http, sensitive-data]"; set_stamp_field "$st" overlay python
+check "stamp: replaces a field" "[ \"\$(stamp_field '$st' addons)\" = '[api-http, sensitive-data]' ]"
+check "stamp: keeps CRLF line ends" "[ \"\$(grep '^addons: ' '$st' | wc -c | tr -d ' ')\" = 35 ]"  # 33 characters, CR, LF
+check "stamp: appends a missing field" "[ \"\$(stamp_field '$st' overlay)\" = python ]"
+check "stamp: keeps other lines" "grep -q '^license: mit' '$st' && grep -q '^# header' '$st'"
+printf '{".":"1.4.0"}\n' > "$work/.release-please-manifest.json"
+check "manifest_version reads compact JSON" "[ \"\$(manifest_version '$work')\" = 1.4.0 ]"
+check "manifest_version reads the repo's manifest" "[ -n \"\$(manifest_version '$STANDARD_ROOT')\" ]"
+
 if command -v rsync >/dev/null; then
   # Fresh copies: the symlink test above added to the source after
   # $work/plain was made.

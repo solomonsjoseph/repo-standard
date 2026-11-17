@@ -196,6 +196,31 @@ copy_tree() {
   rm -f "$list"
 }
 
+# The stamp (ADR 0002): .github/repo-standard.yml in an adopted repo, with
+# one "key: value" per line. Every script reads and writes it through these
+# helpers, so they agree on comments, quotes and CRLF line ends.
+# shellcheck disable=SC2034  # used by apply-overlay.sh, audit.sh and update-repo.sh
+STAMP_FILE=.github/repo-standard.yml
+# stamp_field FILE KEY: KEY's value, without a trailing comment, quotes or CR.
+stamp_field() {
+  [ -f "$1" ] || return 0
+  K="$2" perl -ne 'if (/^\Q$ENV{K}\E:\s*(.*?)\s*$/) { my $v = $1; $v =~ s/\s+#.*$//;
+    $v =~ s/^(["\x27])(.*)\1$/$2/; print "$v\n"; exit }' "$1"
+}
+# set_stamp_field FILE KEY VALUE: replace KEY's line, or append it when
+# missing. Other lines, comments and line ends are kept.
+set_stamp_field() {
+  if grep -qE "^$2:" "$1" 2>/dev/null; then
+    K="$2" V="$3" perl -pi -e 's/^\Q$ENV{K}\E:[^\r\n]*/$ENV{K}: $ENV{V}/' "$1"
+  else
+    printf '%s: %s\n' "$2" "$3" >> "$1"
+  fi
+}
+# manifest_version DIR: the version in DIR/.release-please-manifest.json.
+manifest_version() {
+  sed -nE 's/.*"\."[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$1/.release-please-manifest.json" 2>/dev/null | head -n 1
+}
+
 # File-name rule shared with the no-scratch-files pre-commit hook (keep the two
 # in sync; scripts/check-drift.sh verifies it in repo-standard).
 # shellcheck disable=SC2034  # used by audit.sh
