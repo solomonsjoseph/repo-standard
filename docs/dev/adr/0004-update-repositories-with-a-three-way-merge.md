@@ -32,9 +32,9 @@ it.
 version, overlay, add-ons and visibility from `.github/repo-standard.yml`
 (ADR 0002), renders the standard at that version and at the target with each
 version's own scripts, and merges each managed file with `git merge-file`:
-the repository's copy is "ours", the old render is the base, the new render is
-"theirs". It works on a branch, leaves the result uncommitted, and exits 1
-when something needs a hand merge.
+the repository copy is one side, the new render is the other, and the old
+render is the common base. It works on a branch, leaves the result
+uncommitted, and exits 1 when something needs a hand merge.
 
 Copier stays on the list for a future major version of the standard, if the
 template grows conditional files that shell scripts handle badly.
