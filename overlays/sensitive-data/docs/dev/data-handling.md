@@ -32,15 +32,19 @@ schemas and synthetic test data only.
   dates of birth, five-digit ZIP codes or ages over 89. A hashed or encrypted
   real identifier still counts as derived from the person (45 CFR
   164.514(c)).
+- When a test needs an identifier, use a format no real record has: SSNs in
+  the never-issued 900 to 999 range, record numbers with a `SYN-` prefix
+  and letters (`SYN-TEST-A`), and birth years only. The gitleaks rules scan
+  the fixtures too and reject anything that looks real.
 
 ## What the checks enforce
 
 | Check | Where | What it catches |
 |---|---|---|
 | `no-data-files` hook | pre-commit and CI | Data file types (CSV, Parquet, Excel, SAS, Stata, SPSS, R data, SQLite, DICOM and others) anywhere except `tests/fixtures/synthetic/` |
-| gitleaks with `.gitleaks.toml` | pre-commit and the CI `secrets` job | Every default secret rule, plus SSNs and labeled medical record numbers and dates of birth |
+| gitleaks with `.gitleaks.toml` | pre-commit and the CI `secrets` job | Every default secret rule, plus SSNs and labeled medical record numbers and dates of birth, in every file including fixtures |
 | `.gitignore` | git | `data/`, `raw/`, `_targets/`, `_freeze/`, R session files and common data formats |
-| `.claude/settings.json` deny rules | Claude Code | Reads of `data/`, `raw/`, `_targets/` and data file types |
+| `.claude/settings.json` deny rules | Claude Code | Reads of `data/`, `raw/`, `_targets/` and binary data formats (SAS, Stata, SPSS, R, Parquet, Excel); CSV stays readable so agents can use the synthetic fixtures |
 
 These checks catch mistakes; they do not prove that data is absent. The
 Claude Code deny rules stop the Read tool only: a shell command can still
