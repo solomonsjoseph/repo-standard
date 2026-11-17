@@ -23,6 +23,7 @@ coverage/
 .scratch/
 .remember/
 .claude/settings.local.json
+CLAUDE.local.md
 
 # Docs builds and generated reference
 docs/reference/api/

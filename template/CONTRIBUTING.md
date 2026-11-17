@@ -9,7 +9,7 @@ The short version:
 3. Install the hooks once per clone:
 
    ```bash
-   pre-commit install --hook-type pre-commit --hook-type commit-msg
+   pre-commit install
    ```
 
 4. Commit with Conventional Commits: `type(scope): subject`, imperative and
@@ -23,3 +23,19 @@ The short version:
    on `main`, and merging it publishes the version.
 
 Source files are English and plain ASCII only.
+
+## AI tools
+
+This project is developed with AI coding agents, and the maintainer
+reviews every change before it merges. Contributions made with AI help are
+welcome on the same terms:
+
+- you understand every line you submit and can answer questions about it;
+- you say in the pull request description, in plain words, when an AI tool
+  wrote a significant part of the change;
+- you do not submit changes produced by an autonomous agent without your
+  own review.
+
+Commits and pull request bodies carry no AI attribution lines
+(`Co-Authored-By` naming an AI tool, or "Generated with" footers); a hook
+and the `pr-title` check reject them.

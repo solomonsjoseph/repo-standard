@@ -1,5 +1,7 @@
-# Required check: "pr-title". The squash commit takes the PR title, so the
-# title must be a valid Conventional Commit.
+# Required check: "pr-title". The squash commit takes the PR title as its
+# subject and the PR body as its message, so the title must be a valid
+# Conventional Commit and the body must not carry AI attribution lines
+# (STANDARD.md section 5), which local hooks never see.
 name: pr-title
 
 on:
@@ -39,3 +41,17 @@ jobs:
           subjectPattern: ^(?![A-Z]).+$
           subjectPatternError: |
             The subject "{subject}" in "{title}" must start with a lowercase letter.
+      - name: Check the PR body for AI attribution lines
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # Co-Authored-By trailers with an AI tool's address, and footer lines
+          # such as "Generated with Claude Code". Human co-authors and a
+          # sentence that discloses AI use stay allowed. Keep in step with the
+          # no-ai-attribution hook (check-drift.sh compares them).
+          pattern='^\s*co-authored-by:[^<]*<[^>]*(@anthropic\.com|@openai\.com|@cursor\.com|\+copilot@users\.noreply\.github\.com|devin-ai-integration|gemini-code-assist|chatgpt)|^[^A-Za-z0-9]*generated (with|by) \[?(claude|anthropic|copilot|openai|chatgpt|codex|gemini|cursor|devin)[^],.;:!?]*\]?(\([^)]*\))?\s*$'
+          if printf '%s\n' "$BODY" | grep -Eiq "$pattern"; then
+            echo "::error::Remove AI attribution lines from the PR body (STANDARD.md section 5); the squash commit message is taken from it."
+            printf '%s\n' "$BODY" | grep -Ein "$pattern" || true
+            exit 1
+          fi
