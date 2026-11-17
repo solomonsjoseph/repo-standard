@@ -1,0 +1,13 @@
+  # sensitive-data add-on: data files never enter git. Synthetic test data
+  # lives in tests/fixtures/synthetic/ (see docs/dev/data-handling.md).
+  - repo: local
+    hooks:
+      - id: no-data-files
+        name: data files stay out of git (synthetic fixtures excepted)
+        language: fail
+        entry: >-
+          Data files are never committed. Keep real data outside the
+          repository and put synthetic test data in tests/fixtures/synthetic/
+          (docs/dev/data-handling.md).
+        files: (?i)\.(csv|tsv|psv|parquet|feather|arrow|avro|orc|xlsx?|xlsm|ods|sas7bdat|sas7bcat|xpt|sav|zsav|por|dta|rds|rdata|rda|sqlite3?|db|duckdb|h5|hdf5|mat|npy|npz|pkl|pickle|dcm|nii|hl7|ndjson|jsonl)(\.(gz|bz2|xz|zip|zst))?$
+        exclude: ^tests/fixtures/synthetic/

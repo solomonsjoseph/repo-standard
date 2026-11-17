@@ -1,0 +1,13 @@
+# sensitive-data add-on: data and analysis caches stay out of git
+data/
+raw/
+_targets/
+_freeze/
+.RData
+.Rhistory
+*.sas7bdat
+*.xpt
+*.dta
+*.sav
+*.parquet
+*.feather

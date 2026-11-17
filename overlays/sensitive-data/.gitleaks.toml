@@ -1,0 +1,44 @@
+# gitleaks configuration from the repo standard's sensitive-data add-on.
+# The pre-commit hook and the CI secrets job both read this file. It keeps
+# every default secret rule and adds patterns for personal identifiers that
+# must never reach git. Synthetic fixtures in tests/fixtures/synthetic/ are
+# exempt from the identifier rules only, never from the secret rules.
+title = "repo-standard sensitive-data"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "us-ssn"
+description = "US Social Security number (NNN-NN-NNNN)"
+regex = '''\b(?:00[1-9]|0[1-9]\d|[1-5]\d{2}|6[0-57-9]\d|66[0-57-9]|7[0-6]\d|77[0-2])-(?:0[1-9]|[1-9]\d)-(?:000[1-9]|00[1-9]\d|0[1-9]\d{2}|[1-9]\d{3})\b'''
+tags = ["pii", "phi"]
+[[rules.allowlists]]
+paths = ['''(^|/)tests/fixtures/synthetic/''']
+
+[[rules]]
+id = "us-ssn-labeled"
+description = "Nine-digit number labeled as an SSN"
+regex = '''(?i)\bssn\b["']?\s*[:=]\s*["']?\d{9}\b'''
+keywords = ["ssn"]
+tags = ["pii", "phi"]
+[[rules.allowlists]]
+paths = ['''(^|/)tests/fixtures/synthetic/''']
+
+[[rules]]
+id = "medical-record-number"
+description = "Value labeled as a medical record number"
+regex = '''(?i)\b(?:mrn|medical[ _-]?record[ _-]?(?:number|num|no)?)\b["']?\s*[:=#]\s*["']?[A-Z]{0,3}\d{5,12}\b'''
+keywords = ["mrn", "medical"]
+tags = ["phi"]
+[[rules.allowlists]]
+paths = ['''(^|/)tests/fixtures/synthetic/''']
+
+[[rules]]
+id = "date-of-birth"
+description = "Full date labeled as a date of birth"
+regex = '''(?i)\b(?:dob|date[ _-]?of[ _-]?birth|birth[ _-]?date)\b["']?\s*[:=,]\s*["']?(?:\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{2,4})'''
+keywords = ["dob", "birth"]
+tags = ["pii", "phi"]
+[[rules.allowlists]]
+paths = ['''(^|/)tests/fixtures/synthetic/''']
