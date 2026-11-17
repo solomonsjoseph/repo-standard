@@ -61,7 +61,7 @@ resolve() {
   local ref="$1"
   case "$ref" in [0-9]*) ref="v$ref" ;; esac
   git -C "$STANDARD_ROOT" rev-parse --verify --quiet "$ref^{commit}" >/dev/null ||
-    die "unknown ref $ref in $STANDARD_ROOT (git fetch --tags?)"
+    die "unknown ref $ref in $STANDARD_ROOT: run 'git fetch --tags', or pass --from/--to with a commit (a version without a release has no tag)"
   echo "$ref"
 }
 if [ -z "$to" ]; then
@@ -150,6 +150,20 @@ while IFS= read -r rel; do
   elif [ ! -f "$o" ]; then
     say MISSING "$rel (changed in the standard; the repo has no copy: restore it, or add it to the exclude list)"
     notes=$((notes + 1))
+  elif [ "$rel" = .gitignore ]; then
+    # Ignore lists are sets, and retrofits put the standard's lines under
+    # their own header, so a line merge would conflict for no reason. Add
+    # the patterns the new version gained; never remove the repo's.
+    new_lines="$(grep -vxF -f "$b" "$n" | grep -vE '^[[:space:]]*(#|$)' | grep -vxF -f "$o" || true)"
+    new_lines="$(printf '%s\n' "$new_lines" | while IFS= read -r line; do
+      [ -n "$line" ] && ! excluded "$dir" "gitignore:$line" && printf '%s\n' "$line"; done || true)"
+    [ -n "$new_lines" ] || continue
+    say UPDATED "$rel (added: $(printf '%s' "$new_lines" | tr '\n' ' '))"; updated=$((updated + 1))
+    if [ "$dry" = 0 ]; then
+      [ -n "$(tail -c 1 "$o")" ] && echo >> "$o"
+      grep -qxF "# Added by the repo standard" "$o" || printf '\n# Added by the repo standard\n' >> "$o"
+      printf '%s\n' "$new_lines" >> "$o"
+    fi
   elif ! grep -Iq . "$o" || ! grep -Iq . "$n"; then
     if cmp -s "$o" "$b"; then
       say UPDATED "$rel"; updated=$((updated + 1)); [ "$dry" = 1 ] || cp "$n" "$o"
