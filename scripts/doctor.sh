@@ -98,7 +98,7 @@ else
   warn "Claude Code identity hook not registered: run scripts/setup-machine.sh"
 fi
 if [ -f "$CONFIG_DIR/act-as" ]; then
-  acting="$(tr -d '[:space:]' < "$CONFIG_DIR/act-as")"
+  acting="$(act_as_account)"
   if [ -f "$CONFIG_DIR/$acting.env" ]; then pass "every repository acts as $acting (act-as)"
   else fail "act-as names $acting, but $CONFIG_DIR/$acting.env does not exist"; fi
 fi

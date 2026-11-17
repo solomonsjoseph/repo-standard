@@ -14,7 +14,8 @@
 #   4. Runs doctor.sh.
 # It never creates OWNER.env or source.env (they hold private choices; see
 # scripts/lib.sh) and never runs `gh auth switch`. Existing clones get the
-# pre-push guard by running `git init` inside each clone.
+# pre-push guard by running `git init` inside each clone; git init never
+# replaces a pre-push hook a clone already has, so copy it by hand there.
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 
@@ -65,7 +66,10 @@ fi
 info "Claude Code identity hook"
 settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
 mkdir -p "$(dirname "$settings")"
-hook_cmd="bash \"$(native_path "$STANDARD_ROOT/scripts/claude-hooks/git-identity-switch.sh")\""
+# The full path of this bash: on Windows a bare `bash` can resolve to WSL's
+# bash.exe, which cannot run a C:/ path or the Windows python3 and gh.
+bash_bin="$BASH"; [ -f "$bash_bin.exe" ] && bash_bin="$bash_bin.exe"
+hook_cmd="\"$(native_path "$bash_bin")\" \"$(native_path "$STANDARD_ROOT/scripts/claude-hooks/git-identity-switch.sh")\""
 SETTINGS="$settings" HOOK_CMD="$hook_cmd" python3 - <<'PY'
 import json, os, shutil
 path, cmd = os.environ["SETTINGS"], os.environ["HOOK_CMD"]
@@ -98,3 +102,4 @@ info "checking the machine"
 "$STANDARD_ROOT/scripts/doctor.sh" || true
 echo
 echo "Existing clones get the pre-push guard by running 'git init' inside each clone."
+echo "A clone that already has a pre-push hook keeps it: copy scripts/git-hooks/pre-push into its .git/hooks/ by hand."

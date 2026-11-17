@@ -62,6 +62,9 @@ load_owner() {
 
 # owner_name OWNER: display name used for commits and LICENSE holders.
 owner_name() { load_owner "$1"; echo "$OWNER_NAME"; }
+# act_as_account: the account in CONFIG_DIR/act-as (one account acts in every
+# repository), or nothing when the file does not exist.
+act_as_account() { [ -f "$CONFIG_DIR/act-as" ] && tr -d '[:space:]' < "$CONFIG_DIR/act-as" || true; }
 
 # set_identity DIR OWNER: local commit identity, credential helper and (when
 # SIGNING_KEY is set) SSH commit signing for the owner. Never global. The

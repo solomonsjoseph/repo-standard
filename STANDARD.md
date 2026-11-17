@@ -117,7 +117,10 @@ again after updating repo-standard). It installs two guards:
 
 - the pre-push guard (`scripts/git-hooks/pre-push`) as a git template
   hook, so every clone refuses pushes that would update or delete `main`.
-  Existing clones get it by running `git init` inside the clone;
+  It guards repositories that have the `.github/repo-standard.yml` stamp,
+  and allows the first push that creates `main`. Existing clones get it by
+  running `git init` inside the clone (git keeps a pre-push hook the clone
+  already has; copy the guard over it by hand there);
 - the identity hook (`scripts/claude-hooks/git-identity-switch.sh`) as a
   Claude Code PreToolUse hook. Before a git command, it sets the clone's
   local commit identity and credential helper for the account that should

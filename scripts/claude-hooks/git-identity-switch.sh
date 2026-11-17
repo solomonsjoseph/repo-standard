@@ -45,13 +45,13 @@ url="$(git -C "$top" remote get-url origin 2>/dev/null)" || exit 0
 [[ "$url" =~ github\.com[:/]([^/]+)/ ]] || exit 0
 owner="${BASH_REMATCH[1]}"
 
-account="$owner"
-if [ -f "$CONFIG_DIR/act-as" ]; then
-  account="$(tr -d '[:space:]' < "$CONFIG_DIR/act-as")"
-fi
+account="$(act_as_account)"; account="${account:-$owner}"
 
 if [ ! -f "$CONFIG_DIR/$account.env" ]; then
-  if [[ "$cmd" =~ git([[:space:]]+-[Cc][[:space:]]+[^[:space:]]+)*[[:space:]]+(commit|push)([[:space:]]|$) ]]; then
+  # git, then any global options (-C DIR, quoted or not, -c KEY=VALUE,
+  # --no-pager, --git-dir=...), then commit or push.
+  git_write_re='(^|[;&|({[:space:]])git([[:space:]]+(-[Cc][[:space:]]+("[^"]*"|'"'"'[^'"'"']*'"'"'|[^[:space:]]+)|--[^[:space:]]+|-[A-Za-z]))*[[:space:]]+(commit|push)([[:space:]]|$)'
+  if [[ "$cmd" =~ $git_write_re ]]; then
     echo "git-identity-switch: no $CONFIG_DIR/$account.env, so $top has no known identity for '$account'. Create it (see scripts/lib.sh) before committing or pushing." >&2
     exit 2
   fi
@@ -60,7 +60,7 @@ fi
 
 # Already right: same name, the account's noreply address, and a credential
 # helper that answers as the account. Checked locally, so no network call.
-name="$( (load_owner "$account" && echo "$OWNER_NAME") 2>/dev/null)"
+name="$( (owner_name "$account") 2>/dev/null)"
 if [ "$(git -C "$top" config --local user.name)" = "$name" ] &&
    [[ "$(git -C "$top" config --local user.email)" == *"+$account@users.noreply.github.com" ]] &&
    git -C "$top" config --local --get-all credential.https://github.com.helper | grep -q "username=$account;"; then

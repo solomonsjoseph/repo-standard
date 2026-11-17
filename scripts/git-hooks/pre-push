@@ -10,15 +10,23 @@
 # `HEAD:refs/heads/main` and `:main` (deletion) are all caught, including
 # pushes of commits the remote already has.
 #
+# Two exceptions: repositories that do not follow the standard (no
+# .github/repo-standard.yml) are left alone, and the first push that creates
+# main on an empty remote (the bootstrap commit of new-repo.sh) is allowed.
+#
 # Not a security boundary: `git push --no-verify` skips it. The main-guard
 # workflow reports anything that reaches main without a merged pull request.
 # If pre-commit later installs its own pre-push hook, it keeps this one as
 # pre-push.legacy and still runs it.
+top="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -f "$top/.github/repo-standard.yml" ] || exit 0
+zero=0000000000000000000000000000000000000000
 status=0
-# Only the remote ref matters; the other fields are read to keep columns aligned.
-while read -r _local_ref _local_sha remote_ref _remote_sha; do
+while read -r _local_ref local_sha remote_ref remote_sha; do
   case "$remote_ref" in
     refs/heads/main)
+      # Creating main where it does not exist yet: the bootstrap push.
+      if [ "$remote_sha" = "$zero" ] && [ "$local_sha" != "$zero" ]; then continue; fi
       echo "pre-push: refusing to push to main on '$1'. Push a branch and open a pull request." >&2
       status=1
       ;;

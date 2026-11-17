@@ -46,22 +46,40 @@ jobs:
             problems="main was force-pushed (previous tip $BEFORE)."
           fi
           # Commits this push added to main, oldest first.
-          shas="$(gh api "repos/$REPO/compare/$BEFORE...$AFTER" --jq '.commits[].sha' || true)"
-          for sha in $shas; do
-            # A squash or merge commit is associated with its pull request.
-            # The association can lag the push by a few seconds; retry once.
-            merged=""
-            for attempt in 1 2; do
-              merged="$(gh api "repos/$REPO/commits/$sha/pulls" \
-                --jq '[.[] | select(.merged_at != null and .base.ref == "main")] | length')"
-              [ "$merged" != 0 ] && break
-              [ "$attempt" = 1 ] && sleep 20
+          if ! shas="$(gh api --paginate "repos/$REPO/compare/$BEFORE...$AFTER" --jq '.commits[].sha')"; then
+            problems="$problems
+          - the pushed commits could not be listed ($BEFORE...$AFTER); check them by hand."
+            shas=""
+          fi
+          # unmerged SHA...: the SHAs that are not the merge (squash) commit
+          # of a merged pull request into main. A commit that only belongs to
+          # a pull request's branch does not count.
+          unmerged() {
+            local sha n
+            for sha in "$@"; do
+              n="$(gh api "repos/$REPO/commits/$sha/pulls" \
+                --jq "[.[] | select(.merged_at != null and .base.ref == \"main\" and .merge_commit_sha == \"$sha\")] | length" 2>/dev/null)" || n=error
+              [ "$n" != 0 ] && [ "$n" != error ] || echo "$sha $n"
             done
-            if [ "$merged" = 0 ]; then
+          }
+          # The association can lag the push by a few seconds: check once,
+          # wait once, and check again only what was missing.
+          missing="$(unmerged $shas)"
+          if [ -n "$missing" ]; then
+            sleep 20
+            # shellcheck disable=SC2046
+            missing="$(unmerged $(echo "$missing" | cut -d' ' -f1))"
+          fi
+          while read -r sha n; do
+            [ -n "$sha" ] || continue
+            if [ "$n" = error ]; then
               problems="$problems
-          - $sha has no merged pull request into main."
+          - $sha could not be checked (GitHub API error); check it by hand."
+            else
+              problems="$problems
+          - $sha is not the merge commit of a merged pull request into main."
             fi
-          done
+          done <<< "$missing"
           if [ -z "$problems" ]; then
             echo "every commit on main came from a merged pull request"
             exit 0
