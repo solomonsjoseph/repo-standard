@@ -33,7 +33,7 @@ gh_as "$owner" repo view "$owner/$name" >/dev/null 2>&1 && die "$owner/$name alr
 
 info "building $dir"
 mkdir -p "$dir"
-rsync -a "$STANDARD_ROOT/template/" "$dir/"
+copy_tree "$STANDARD_ROOT/template" "$dir"
 pub_flag=(); [ "$vis" = public ] && pub_flag=(--public)
 "$STANDARD_ROOT/scripts/apply-overlay.sh" "$dir" "$overlay" ${pub_flag[@]+"${pub_flag[@]}"} \
   --owner "$owner" --name "$name" --desc "$desc"
@@ -58,13 +58,14 @@ gh_as "$owner" repo create "$owner/$name" "--$vis" --description "$desc" \
 
 "$STANDARD_ROOT/scripts/apply-settings.sh" "$owner/$name" "$vis"
 
+key_cmd="$(release_key_cmd "$owner" "$owner/$name")"
 cat <<NEXT
 
 Done: https://github.com/$owner/$name
 
 Next steps (you, not Claude):
   1. Install the release App on this repo: https://github.com/settings/installations
-  2. security find-generic-password -s release-app-key -a $owner -w | base64 -d | gh secret set RELEASE_APP_PRIVATE_KEY --repo $owner/$name
+  2. $key_cmd
      (store the key once first; see STANDARD.md section 2)
   3. cd $dir && pre-commit install --hook-type pre-commit --hook-type commit-msg
 NEXT
