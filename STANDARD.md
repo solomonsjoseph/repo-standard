@@ -362,6 +362,11 @@ before merging any of them: merging the release PR is a release.
   above SHA pinning; the standard does not adopt them yet, because their
   availability for personal accounts is unclear and enforcing them on
   private repos needs a Team or Enterprise plan.
+  In repo-standard itself, Dependabot sees only the root files;
+  `scripts/sync-pins.sh` copies their pins into `template/` and
+  `overlays/`, `--latest` refreshes the pins only those folders use (to the
+  newest release at least 7 days old), and `check-drift.sh` fails while any
+  action or hook is pinned to two different commits.
 - Private repos on the Free plan have no rulesets or branch protection
   (GitHub Pro adds both), and no secret scanning, push protection, CodeQL,
   dependency review, private vulnerability reporting, or artifact
