@@ -45,6 +45,8 @@ render_placeholders() {
 #   OWNER_NAME="Display Name"          commit and LICENSE name (required)
 #   RELEASE_APP_CLIENT_ID=Iv1...       release App client id (public id)
 #   SIGNING_KEY=~/.ssh/id_ed25519.pub  SSH key for commit signing (optional)
+#   SECURITY_CONTACT="..."             private repos' SECURITY.md contact, such
+#                                      as an address or a form URL (optional)
 CONFIG_DIR="${REPO_STANDARD_CONFIG:-$HOME/.config/repo-standard}"
 
 # load_owner OWNER: refuse owners without a private config (the scripts run
@@ -55,6 +57,8 @@ load_owner() {
   [ -f "$conf" ] || die "unknown owner '$1': create $conf (see scripts/lib.sh)"
   # RELEASE_APP_CLIENT_ID is read by the scripts that call load_owner.
   OWNER_NAME=""; export RELEASE_APP_CLIENT_ID=""; SIGNING_KEY=""
+  # shellcheck disable=SC2034  # read by apply-overlay.sh
+  SECURITY_CONTACT=""
   # shellcheck disable=SC1090
   source "$conf"
   [ -n "$OWNER_NAME" ] || die "$conf has no OWNER_NAME"
