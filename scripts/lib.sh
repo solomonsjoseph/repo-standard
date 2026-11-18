@@ -308,3 +308,46 @@ origin_slug() {
   git -C "$1" remote get-url origin 2>/dev/null |
     sed -nE 's#^(https://github\.com/|git@github\.com:)([^/]+/[^/]+)$#\2#p' | sed 's/\.git$//' || true
 }
+
+# pytest_mode PYPROJECT: how pyproject.toml configures pytest 9 strict mode:
+# "strict", "loose", "invalid" (not valid TOML), "no-python", or nothing
+# when the file is missing or does not configure pytest.
+pytest_mode() {
+  [ -f "$1" ] || return 0
+  python3 -c '
+import re, sys
+TRUE = ("true", "yes", "on", "1")
+try:
+    import tomllib
+except ImportError:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        tomllib = None
+if tomllib is None:
+    # Python 3.9 and 3.10 without tomli: read the two pytest tables line
+    # by line (enough for the plain key = value lines pytest config uses).
+    table, seen, strict = "", False, False
+    for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
+        head = re.match(r"\s*\[([^\]]+)\]\s*(#.*)?$", line)
+        if head:
+            table = head.group(1).replace(" ", "")
+            seen = seen or table in ("tool.pytest", "tool.pytest.ini_options")
+            continue
+        value = re.match(r"\s*strict\s*=\s*[\x27\x22]?(\w+)", line)
+        if table in ("tool.pytest", "tool.pytest.ini_options") and value:
+            strict = strict or value.group(1).lower() in TRUE
+    sys.exit(print("strict" if strict else "loose") if seen else None)
+try:
+    with open(sys.argv[1], "rb") as f:
+        tool = tomllib.load(f).get("tool", {})
+except (OSError, ValueError):
+    sys.exit(print("invalid"))
+pytest = tool.get("pytest")
+if isinstance(pytest, dict):
+    for table in (pytest, pytest.get("ini_options")):
+        # pytest reads an ini boolean as true from any of these spellings.
+        if isinstance(table, dict) and str(table.get("strict", "")).lower() in TRUE:
+            sys.exit(print("strict"))
+    print("loose")' "$1" 2>/dev/null | tr -d '\r' || echo no-python
+}
