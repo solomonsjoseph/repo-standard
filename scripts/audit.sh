@@ -137,37 +137,11 @@ import os, re, sys
 name = re.compile(os.environ["RE"], re.I); exempt = re.compile(os.environ["EX"], re.I)
 print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exempt.search(p)))' || true)"
   chk RS-DOC-05 "no committed plan or notes files${stray:+ (found: $stray)}" "[ -z \"\$stray\" ]"
-  # pytest 9 strict mode, where pyproject.toml configures pytest: "strict",
-  # "loose", "invalid" (unreadable TOML), "no-parser" (Python before 3.11
-  # without tomli), or empty when there is no pytest config.
-  pytest_mode=""
-  if [ -f "$dir/pyproject.toml" ]; then
-    pytest_mode="$(python3 -c '
-import sys
-try:
-    import tomllib
-except ImportError:
-    try:
-        import tomli as tomllib
-    except ImportError:
-        sys.exit(print("no-parser"))
-try:
-    with open(sys.argv[1], "rb") as f:
-        tool = tomllib.load(f).get("tool", {})
-except (OSError, ValueError):
-    sys.exit(print("invalid"))
-pytest = tool.get("pytest")
-if isinstance(pytest, dict):
-    for table in (pytest, pytest.get("ini_options")):
-        # pytest reads an ini boolean as true from any of these spellings.
-        if isinstance(table, dict) and str(table.get("strict", "")).lower() in ("true", "yes", "on", "1"):
-            sys.exit(print("strict"))
-    print("loose")' "$dir/pyproject.toml" 2>/dev/null | tr -d '\r' || echo no-parser)"
-  fi
+  pytest_mode="$(pytest_mode "$dir/pyproject.toml")"
   case "$pytest_mode" in
     strict|loose) chk RS-TEST-01 "pytest runs in strict mode (strict = true)" "[ \"\$pytest_mode\" = strict ]" ;;
     invalid) chk RS-TEST-01 "pytest strict mode (pyproject.toml is not valid TOML)" false ;;
-    no-parser) chk RS-TEST-01 "pytest strict mode (cannot check: needs Python 3.11 or tomli)" false ;;
+    no-python) chk RS-TEST-01 "pytest strict mode (cannot check: python3 failed)" false ;;
     *) nap RS-TEST-01 "pytest strict mode (pyproject.toml does not configure pytest)" ;;
   esac
 
