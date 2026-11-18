@@ -137,6 +137,13 @@ import os, re, sys
 name = re.compile(os.environ["RE"], re.I); exempt = re.compile(os.environ["EX"], re.I)
 print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exempt.search(p)))' || true)"
   chk RS-DOC-05 "no committed plan or notes files${stray:+ (found: $stray)}" "[ -z \"\$stray\" ]"
+  pytest_mode="$(pytest_mode "$dir/pyproject.toml")"
+  case "$pytest_mode" in
+    strict|loose) chk RS-TEST-01 "pytest runs in strict mode (strict = true)" "[ \"\$pytest_mode\" = strict ]" ;;
+    invalid) chk RS-TEST-01 "pytest strict mode (pyproject.toml is not valid TOML)" false ;;
+    no-python) chk RS-TEST-01 "pytest strict mode (cannot check: python3 failed)" false ;;
+    *) nap RS-TEST-01 "pytest strict mode (pyproject.toml does not configure pytest)" ;;
+  esac
 
   echo "== hooks"
   unfrozen="$(grep -E '^\s+rev: ' "$dir/.pre-commit-config.yaml" 2>/dev/null | grep -vE 'rev: [0-9a-f]{40}' || true)"
