@@ -27,3 +27,24 @@ updates:
       hooks:
         patterns: ["*"]
 # LANGUAGE ECOSYSTEMS (added by overlay)
+# repo-standard only (check-drift.sh allows lines after the marker): the ts
+# overlay's package.json, so new repos start from current versions. The
+# python overlay has no lock file, which Dependabot's uv support needs.
+  - package-ecosystem: npm
+    directory: /overlays/ts
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: fix
+      include: scope
+    labels: [dependencies]
+    # Same hold as the overlay's own config: typescript-eslint 8 supports
+    # TypeScript below 6.1 only.
+    ignore:
+      - dependency-name: typescript
+        versions: [">=6.1"]
+    groups:
+      overlay-ts:
+        patterns: ["*"]
