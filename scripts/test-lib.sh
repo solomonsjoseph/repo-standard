@@ -104,6 +104,25 @@ check "merge_gitignore: adds missing patterns under one header" "[ \"\$(cat '$wo
 merge_gitignore "$work/gi-from" "$work/ex/.gitignore" "$work/ex"
 check "merge_gitignore: a re-run adds nothing" "[ \"\$(grep -c . '$work/ex/.gitignore')\" = 4 ]"
 
+# pytest_mode, with a TOML parser and with the line scan that Python 3.9
+# and 3.10 without tomli use (simulated by modules that fail to import).
+py="$work/py"; mkdir -p "$py/nop"
+printf 'raise ImportError\n' > "$py/nop/tomllib.py"; cp "$py/nop/tomllib.py" "$py/nop/tomli.py"
+pt() { mkdir -p "$py/$1"; printf '%b' "$2" > "$py/$1/pyproject.toml"; }
+pt overlay '[tool.pytest.ini_options]\naddopts = "-q -ra"\nstrict = true\n'
+pt native '[tool.pytest]\nstrict = true\n'
+pt yes '[ tool.pytest.ini_options ]  # cfg\nstrict = "yes"\n'
+pt loose '[tool.pytest.ini_options]\naddopts = "-q"\n[tool.other]\nstrict = true\n'
+pt off '[tool.pytest.ini_options]\nstrict = false\n'
+pt none '[project]\nname = "x"\n'
+for c in overlay:strict native:strict yes:strict loose:loose off:loose none: missing:; do
+  d="${c%%:*}"; want="${c#*:}"
+  check "pytest_mode: $d is '${want:-nothing}'" "[ \"\$(pytest_mode '$py/$d/pyproject.toml')\" = '$want' ]"
+  check "pytest_mode: $d is '${want:-nothing}' without a TOML parser" "[ \"\$(PYTHONPATH='$py/nop' pytest_mode '$py/$d/pyproject.toml')\" = '$want' ]"
+done
+pt bad '[tool.pytest\nstrict = true\n'
+check "pytest_mode: invalid TOML is 'invalid'" "[ \"\$(pytest_mode '$py/bad/pyproject.toml')\" = invalid ]"
+
 if command -v rsync >/dev/null; then
   # Fresh copies: the symlink test above added to the source after
   # $work/plain was made.
