@@ -380,8 +380,10 @@ before merging any of them: merging the release PR is a release.
   public repo (GitHub offers it for public repos only). It states the
   response times (an answer within 7 days, progress every 14), what is in
   scope, and how a fix is released. A private repo has no reporting
-  button, so its `SECURITY.md` names the owner's `SECURITY_CONTACT` when
-  `OWNER.env` sets one, and the owner's profile otherwise.
+  button. When `OWNER.env` sets `SECURITY_CONTACT`, applying a language
+  overlay to a private repo writes that contact into its `SECURITY.md`;
+  otherwise the file points to the owner's profile. A later change to the
+  contact is made by hand in each repo.
 - Dependabot alerts and security updates on. Version updates for every
   ecosystem in the repo, including `github-actions`, with a 7-day cooldown
   for non-security updates (GitHub's default has been 3 days since

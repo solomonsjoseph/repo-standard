@@ -337,7 +337,9 @@ profile_route="through the details on the owner's GitHub profile"
 if [ "$st_vis" = private ] && grep -qsF "$profile_route" "$target/SECURITY.md"; then
   contact="$( (load_owner "$owner" && printf '%s' "$SECURITY_CONTACT") 2>/dev/null || true)"
   if [ -n "$contact" ]; then
-    FROM="$profile_route" TO="at $contact" perl -pi -e 's/\Q$ENV{FROM}\E/$ENV{TO}/' "$target/SECURITY.md"
+    # Angle brackets make it a Markdown autolink (markdownlint MD034 rejects
+    # a bare address or URL).
+    FROM="$profile_route" TO="at <$contact>" perl -pi -e 's/\Q$ENV{FROM}\E/$ENV{TO}/' "$target/SECURITY.md"
   fi
 fi
 info "overlay $overlay applied to $target (standard $std_version)"
