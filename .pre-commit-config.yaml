@@ -70,7 +70,7 @@ repos:
         # co-authors and a sentence that discloses AI use stay allowed. The pr-title check applies the same rule to
         # the PR body, which becomes the squash commit message.
         language: pygrep
-        entry: '(?i)^\s*co-authored-by:[^<]*<[^>]*(@anthropic\.com|@openai\.com|@cursor\.com|\+copilot@users\.noreply\.github\.com|devin-ai-integration|gemini-code-assist|chatgpt)|^[^A-Za-z0-9]*generated (with|by) \[?(claude|anthropic|copilot|openai|chatgpt|codex|gemini|cursor|devin)[^],.;:!?]*\]?(\([^)]*\))?\s*$'
+        entry: '(?i)^\s*co-authored-by:[^<]*<[^>]*(@anthropic\.com|@openai\.com|@cursor\.com|\+copilot@users\.noreply\.github\.com|devin-ai-integration|gemini-code-assist|chatgpt)|^[^A-Za-z0-9]*generated (with|by) \[?(claude|anthropic|copilot|openai|chatgpt|codex|gemini|cursor|devin)[^],.;:!?]*\]?(\([^)]*\))?\s*$|^\s*claude-session:|^\s*<?https://claude\.ai/code/session_'
         stages: [commit-msg]
       # Code and config are ASCII. Prose, translations, and data files in
       # locale, fixture and testdata folders may use Unicode text, but no

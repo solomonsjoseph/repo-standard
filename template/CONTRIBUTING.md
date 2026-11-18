@@ -39,5 +39,6 @@ welcome on the same terms:
   own review.
 
 Commits and pull request bodies carry no AI attribution lines
-(`Co-Authored-By` naming an AI tool, or "Generated with" footers); a hook
+(`Co-Authored-By` naming an AI tool, "Generated with" footers, or
+`Claude-Session:` trailers and session links); a hook
 and the `pr-title` check reject them.

@@ -249,7 +249,8 @@ Format (Conventional Commits 1.0, Angular conventions):
   owner's private config sets `SIGNING_KEY` (the key must also be added on
   GitHub as a signing key); the ruleset does not require signatures yet.
 - No AI attribution lines in commits or PR bodies: no `Co-Authored-By`
-  naming an AI tool and no "Generated with" footers. AI use is disclosed
+  naming an AI tool, no "Generated with" footers, and no agent session
+  trailers or links (`Claude-Session:`). AI use is disclosed
   once per repository instead: `CONTRIBUTING.md` says the project is
   developed with AI coding agents and that the maintainer reviews every
   change, and sets the terms for contributions made with AI help
