@@ -137,6 +137,25 @@ import os, re, sys
 name = re.compile(os.environ["RE"], re.I); exempt = re.compile(os.environ["EX"], re.I)
 print(" ".join(p for p in sys.stdin.read().split() if name.search(p) and not exempt.search(p)))' || true)"
   chk RS-DOC-05 "no committed plan or notes files${stray:+ (found: $stray)}" "[ -z \"\$stray\" ]"
+  # pytest 9 strict mode, where pyproject.toml configures pytest: "strict",
+  # "loose", or empty when it does not.
+  pytest_mode="$(python3 -c '
+import sys, tomllib
+try:
+    tool = tomllib.load(open(sys.argv[1], "rb")).get("tool", {})
+except (OSError, tomllib.TOMLDecodeError):
+    sys.exit()
+pytest = tool.get("pytest")
+if isinstance(pytest, dict):
+    for table in (pytest, pytest.get("ini_options")):
+        if isinstance(table, dict) and str(table.get("strict", "")).lower() == "true":
+            sys.exit(print("strict"))
+    print("loose")' "$dir/pyproject.toml" 2>/dev/null | tr -d '\r' || true)"
+  if [ -n "$pytest_mode" ]; then
+    chk RS-TEST-01 "pytest runs in strict mode (strict = true)" "[ \"\$pytest_mode\" = strict ]"
+  else
+    nap RS-TEST-01 "pytest strict mode (pyproject.toml does not configure pytest)"
+  fi
 
   echo "== hooks"
   unfrozen="$(grep -E '^\s+rev: ' "$dir/.pre-commit-config.yaml" 2>/dev/null | grep -vE 'rev: [0-9a-f]{40}' || true)"

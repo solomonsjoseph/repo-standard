@@ -78,6 +78,7 @@ The audit exits with status 1 when any rule fails.
 | RS-DOC-03 | `CONTRIBUTING.md` describes the pull request process | OSPS-GV-03.01 |
 | RS-DOC-04 | `.scratch/` is gitignored | |
 | RS-DOC-05 | No committed plan or notes files | |
+| RS-TEST-01 | pytest runs in strict mode (`strict = true` in `[tool.pytest]` or `[tool.pytest.ini_options]`); N/A when `pyproject.toml` does not configure pytest | |
 
 ## Hooks
 
