@@ -38,8 +38,9 @@ every rule an agent needs is repeated here, so the link is background.
 - The pull request title follows the same format; the squash commit takes
   the title as its subject and the body as its message.
 - No AI attribution: no `Co-Authored-By` lines naming an AI tool, no
-  "Generated with" footers and no `Claude-Session:` trailers or session
-  links, in commits or in pull request bodies. A hook and
+  "Generated with" footers and no `Claude-Session:` trailers or lines
+  that start with a session link, in commits or in pull request bodies.
+  A hook and
   the `pr-title` check reject them. The repository states once, in
   `CONTRIBUTING.md`, that it is developed with AI coding agents.
 - Never edit `CHANGELOG.md`; release-please writes it.
