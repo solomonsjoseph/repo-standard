@@ -69,6 +69,10 @@ stage_defaults() {
 stage_standard() {
   stage_base "$1"
   cp "$STANDARD_ROOT/STANDARD.md" "$STANDARD_ROOT/LICENSE" "$1/"
+  # The copy holds STANDARD.md only, so its links to other files of this
+  # repository (the ADRs) would break its link check: keep their text, drop
+  # the link. Web links and links within the page stay.
+  perl -pi -e 's/\[([^\]]+)\]\((?![a-z][a-z0-9+.-]*:|#)[^)]*\)/$1/gi' "$1/STANDARD.md"
   cp "$STANDARD_ROOT/template/CODE_OF_CONDUCT.md" "$STANDARD_ROOT/template/SECURITY.md" "$1/"
   cat > "$1/README.md" <<'README'
 # repo-standard
