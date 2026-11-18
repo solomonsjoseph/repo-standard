@@ -60,9 +60,10 @@ ci_shared() {
     next if $t || /^\s*$/; s/^(\s*SKIP:).*/$1/; s/^(\s*needs:).*/$1/; print' "$1"
 }
 ci_needs_ok() {
-  perl -ne '$in = 1 if /^jobs:/; push @jobs, $1 if $in && /^  ([\w-]+):\s*$/ && $1 ne "ci";
-    $needs = $1 if /^\s+needs: \[(.*)\]/;
-    END { my %n = map { $_ => 1 } split /,\s*/, $needs; exit((grep { !$n{$_} } @jobs) ? 1 : 0) }' "$1"
+  perl -ne '$in = 1 if /^jobs:/; $job = $1 if $in && /^  ([\w-]+):\s*$/;
+    push @jobs, $1 if $in && /^  ([\w-]+):\s*$/ && $1 ne "ci";
+    $needs = $1 if ($job // "") eq "ci" && /^\s+needs: \[\s*(.*?)\s*\]/;
+    END { my %n = map { $_ => 1 } split /\s*,\s*/, $needs // ""; exit((grep { !$n{$_} } @jobs) ? 1 : 0) }' "$1"
 }
 for f in template/.github/workflows/ci.yml overlays/*/_ci.yml; do
   if [ "$f" != template/.github/workflows/ci.yml ] && ! ci_shared "$f" | cmp -s - <(ci_shared template/.github/workflows/ci.yml); then
