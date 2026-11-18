@@ -50,7 +50,7 @@ jobs:
           # such as "Generated with Claude Code". Human co-authors and a
           # sentence that discloses AI use stay allowed. Keep in step with the
           # no-ai-attribution hook (check-drift.sh compares them).
-          pattern='^\s*co-authored-by:[^<]*<[^>]*(@anthropic\.com|@openai\.com|@cursor\.com|\+copilot@users\.noreply\.github\.com|devin-ai-integration|gemini-code-assist|chatgpt)|^[^A-Za-z0-9]*generated (with|by) \[?(claude|anthropic|copilot|openai|chatgpt|codex|gemini|cursor|devin)[^],.;:!?]*\]?(\([^)]*\))?\s*$'
+          pattern='^\s*co-authored-by:[^<]*<[^>]*(@anthropic\.com|@openai\.com|@cursor\.com|\+copilot@users\.noreply\.github\.com|devin-ai-integration|gemini-code-assist|chatgpt)|^[^A-Za-z0-9]*generated (with|by) \[?(claude|anthropic|copilot|openai|chatgpt|codex|gemini|cursor|devin)[^],.;:!?]*\]?(\([^)]*\))?\s*$|^\s*claude-session:|^\s*<?https://claude\.ai/code/session_'
           if printf '%s\n' "$BODY" | grep -Eiq "$pattern"; then
             echo "::error::Remove AI attribution lines from the PR body (STANDARD.md section 5); the squash commit message is taken from it."
             printf '%s\n' "$BODY" | grep -Ein "$pattern" || true
