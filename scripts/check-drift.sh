@@ -51,6 +51,25 @@ for spec in ascii-only:exclude no-invisible-unicode:entry; do
     echo "drift: the $hook $key differs between the root and template pre-commit configs"; status=1
   fi
 done
+# Each language overlay's _ci.yml is the template's ci.yml plus a "test" job:
+# the shared jobs (hooks, secrets, the ci aggregate) must match the template.
+# Ignored: the header comment, blank lines, the SKIP list and the needs list,
+# which the "ci" job must keep complete (every other job in it).
+ci_shared() {
+  perl -ne 'next if $. <= 2 && /^#/; if (/^  test:$/) { $t = 1; next } $t = 0 if $t && /^  \S/;
+    next if $t || /^\s*$/; s/^(\s*SKIP:).*/$1/; s/^(\s*needs:).*/$1/; print' "$1"
+}
+ci_needs_ok() {
+  perl -ne '$in = 1 if /^jobs:/; push @jobs, $1 if $in && /^  ([\w-]+):\s*$/ && $1 ne "ci";
+    $needs = $1 if /^\s+needs: \[(.*)\]/;
+    END { my %n = map { $_ => 1 } split /,\s*/, $needs; exit((grep { !$n{$_} } @jobs) ? 1 : 0) }' "$1"
+}
+for f in template/.github/workflows/ci.yml overlays/*/_ci.yml; do
+  if [ "$f" != template/.github/workflows/ci.yml ] && ! ci_shared "$f" | cmp -s - <(ci_shared template/.github/workflows/ci.yml); then
+    echo "drift: the hooks, secrets or ci job in $f differs from template/.github/workflows/ci.yml"; status=1
+  fi
+  ci_needs_ok "$f" || { echo "drift: the ci job in $f does not need every other job"; status=1; }
+done
 # Action SHAs and hook revisions must agree across root, template/ and overlays/.
 "$STANDARD_ROOT/scripts/sync-pins.sh" --check || status=1
 exit "$status"

@@ -111,6 +111,9 @@ pre-commit run --all-files
 
 - Root files listed in `scripts/check-drift.sh` are copies of `template/`
   files: change both in the same pull request.
+- Each overlay's `_ci.yml` repeats the template `ci.yml`'s `hooks`,
+  `secrets` and `ci` jobs around its `test` job. Change them everywhere in
+  the same pull request; `check-drift.sh` compares them.
 - Dependabot updates action and hook pins in the root files only. On its
   pull requests, run `scripts/sync-pins.sh` and push the result, or the
   drift check fails.
