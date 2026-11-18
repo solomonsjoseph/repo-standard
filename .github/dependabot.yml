@@ -45,6 +45,10 @@ updates:
     ignore:
       - dependency-name: typescript
         versions: [">=6.1"]
+    # Minor and patch updates in one pull request. Nothing in this repo's CI
+    # installs or tests the overlay, so a major update (as in #8) stays a
+    # separate pull request that is tried by hand on a new repo first.
     groups:
       overlay-ts:
         patterns: ["*"]
+        update-types: [minor, patch]
