@@ -329,4 +329,15 @@ set_stamp_field "$stamp" standard-version "$std_version"
 set_stamp_field "$stamp" overlay "${st_overlay:-none}"
 set_stamp_field "$stamp" addons "[$st_addons]"
 set_stamp_field "$stamp" visibility "$st_vis"
+# A private repository has no Report a vulnerability button. When the
+# owner's private config names a SECURITY_CONTACT, the template's
+# SECURITY.md points to it instead of the owner's profile. A SECURITY.md
+# the repository wrote itself does not hold the phrase and is left alone.
+profile_route="through the details on the owner's GitHub profile"
+if [ "$st_vis" = private ] && grep -qsF "$profile_route" "$target/SECURITY.md"; then
+  contact="$( (load_owner "$owner" && printf '%s' "$SECURITY_CONTACT") 2>/dev/null || true)"
+  if [ -n "$contact" ]; then
+    FROM="$profile_route" TO="at $contact" perl -pi -e 's/\Q$ENV{FROM}\E/$ENV{TO}/' "$target/SECURITY.md"
+  fi
+fi
 info "overlay $overlay applied to $target (standard $std_version)"
